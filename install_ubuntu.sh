@@ -55,6 +55,9 @@ if python3 -c "import sys; exit(0 if sys.version_info >= (3, 11) else 1)" 2>/dev
 else
     read -p "가상환경을 생성하시겠습니까? (y/n): " create_venv
 fi
+
+# PEP 668 경고: 시스템 전역 pip 업그레이드를 하지 않습니다
+info_msg "PEP 668 준수: 시스템 pip는 업그레이드하지 않습니다"
 # 5. 가상환경 생성 및 패키지 설치
 if [[ $create_venv =~ ^[Yy]$ ]]; then
     info_msg "가상환경 생성 중..."
