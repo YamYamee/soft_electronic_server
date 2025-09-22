@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 환경 변수 파일 (민감한 정보 포함)
+.env
+
+# 로그 파일
+logs/
+*.log
+
+# 데이터베이스 파일
+*.db
+*.sqlite
+*.sqlite3
+
+# 백업 파일
+*.bak
+*.backup
+
+# 임시 파일
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 테스트 관련
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 머신러닝 모델 (크기가 클 경우)
+# *.joblib
+# *.pkl
+# *.pickle
+
+# 데이터 파일 (민감한 데이터 포함 가능)
+data/
+datasets/
+*.csv
+
+# 설정 파일 (환경별로 다를 수 있음)
+config.ini
+settings.json
+
+# 프로덕션 환경 설정
+docker-compose.override.yml
+.dockerignore

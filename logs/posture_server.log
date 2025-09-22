@@ -121,3 +121,10 @@
 2025-09-22 11:46:43,411 - logger_config - INFO - log_server_start:60 - 시작 시간: 2025-09-22 11:46:43
 2025-09-22 11:46:43,411 - logger_config - INFO - log_server_start:61 - ============================================================
 2025-09-22 11:46:43,433 - websocket_server - INFO - start_server:247 - WebSocket 서버 시작 - 주소: ws://0.0.0.0:8765
+2025-09-22 11:47:02,449 - websockets.server - ERROR - conn_handler:378 - connection handler failed
+Traceback (most recent call last):
+  File "C:\Users\cartc\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\websockets\asyncio\server.py", line 376, in conn_handler
+    await self.handler(connection)
+          ~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: PostureWebSocketServer.handle_client() missing 1 required positional argument: 'path'
+2025-09-22 11:47:43,439 - logger_config - INFO - log_performance_metrics:92 - 성능 메트릭 - 연결 클라이언트: 0, 초당 예측: 0.0, 평균 응답시간: 0.0ms

@@ -8,9 +8,10 @@ import sys
 import logging
 from websocket_server import PostureWebSocketServer
 from logger_config import setup_logging, log_server_start, log_server_shutdown
+from config import config
 
 # 로깅 설정
-setup_logging(log_level=logging.INFO)
+setup_logging(log_level=config.get_log_level_int())
 logger = logging.getLogger(__name__)
 
 def signal_handler(signum, frame):
@@ -25,9 +26,9 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # 서버 설정
-    host = "0.0.0.0"  # 모든 인터페이스에서 접속 허용
-    port = 8765
+    # 서버 설정 (환경 변수에서 로드)
+    host = config.SERVER_HOST
+    port = config.SERVER_PORT
     
     logger.info("자세 인식 WebSocket 서버를 시작합니다...")
     logger.info(f"서버 주소: ws://{host}:{port}")

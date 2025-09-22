@@ -9,6 +9,7 @@ from datetime import datetime
 
 from model_predictor import predictor
 from database import db
+from config import config
 from logger_config import (
     setup_logging, log_server_start, log_server_shutdown,
     log_client_data, log_prediction_result, log_error, log_performance_metrics
@@ -240,8 +241,8 @@ class PostureWebSocketServer:
                 self.handle_client, 
                 self.host, 
                 self.port,
-                ping_interval=30,  # 30초마다 ping
-                ping_timeout=10    # 10초 응답 없으면 연결 종료
+                ping_interval=config.SERVER_PING_INTERVAL,
+                ping_timeout=config.SERVER_PING_TIMEOUT
             )
             
             logger.info(f"WebSocket 서버 시작 - 주소: ws://{self.host}:{self.port}")

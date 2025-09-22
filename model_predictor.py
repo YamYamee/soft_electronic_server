@@ -3,13 +3,14 @@ import logging
 from typing import List, Tuple, Dict, Any
 import os
 import random
+from config import config
 
 # 로거 설정
 logger = logging.getLogger(__name__)
 
 class PosturePredictor:
-    def __init__(self, model_path="model_lr.joblib"):
-        self.model_path = model_path
+    def __init__(self, model_path=None):
+        self.model_path = model_path or config.MODEL_PATH
         self.model = None
         self.posture_labels = {
             0: "정자세",

@@ -2,13 +2,14 @@ import sqlite3
 import asyncio
 from datetime import datetime
 import logging
+from config import config
 
 # 로거 설정
 logger = logging.getLogger(__name__)
 
 class PostureDatabase:
-    def __init__(self, db_path="posture_data.db"):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        self.db_path = db_path or config.DATABASE_PATH
         self.init_database()
     
     def init_database(self):

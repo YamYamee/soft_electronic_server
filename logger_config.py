@@ -2,9 +2,16 @@ import logging
 import logging.handlers
 import os
 from datetime import datetime
+from config import config
 
-def setup_logging(log_level=logging.INFO, log_file="posture_server.log"):
+def setup_logging(log_level=None, log_file=None):
     """로깅 시스템 설정"""
+    
+    # 환경 변수에서 설정값 가져오기
+    if log_level is None:
+        log_level = config.get_log_level_int()
+    if log_file is None:
+        log_file = config.LOG_FILE
     
     # 로그 디렉토리 생성
     log_dir = "logs"
@@ -35,8 +42,8 @@ def setup_logging(log_level=logging.INFO, log_file="posture_server.log"):
     # 파일 핸들러 설정 (로테이션 지원)
     file_handler = logging.handlers.RotatingFileHandler(
         log_file_path, 
-        maxBytes=10*1024*1024,  # 10MB
-        backupCount=5,
+        maxBytes=config.LOG_MAX_SIZE,
+        backupCount=config.LOG_BACKUP_COUNT,
         encoding='utf-8'
     )
     file_handler.setLevel(log_level)
