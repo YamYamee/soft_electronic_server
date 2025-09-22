@@ -42,19 +42,39 @@ python main.py
 #### Ubuntu/Linux 환경:
 
 ```bash
-# Python3와 pip 설치 (Ubuntu)
-sudo apt update
-sudo apt install python3 python3-pip
-
-# 프로젝트 의존성 설치
-pip3 install -r requirements.txt
-
-# 또는 개별 설치
-pip3 install websockets numpy pandas scikit-learn joblib aiofiles
-
-# 스크립트 실행 권한 부여
+# 자동 설치 스크립트 사용 (권장)
 chmod +x install_ubuntu.sh
+./install_ubuntu.sh
+
+# 수동 설치 - PEP 668 호환 방법들:
+
+# 방법 1: 가상환경 사용 (가장 권장)
+sudo apt update
+sudo apt install python3 python3-pip python3-venv python3-dev python3-full
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 방법 2: 시스템 패키지 관리자 사용
+sudo apt install python3-websockets python3-numpy python3-pandas python3-sklearn
+# 추가 패키지는 사용자 로컬에 설치
+python3 -m pip install --user joblib aiofiles typing-extensions
+
+# 방법 3: --break-system-packages 옵션 (주의: 권장하지 않음)
+python3 -m pip install -r requirements.txt --break-system-packages
+
+# 서버 관리 스크립트 권한 부여
 chmod +x server_manager.sh
+```
+
+**PEP 668 오류 해결:**
+Ubuntu 22.04+에서 `error: externally-managed-environment` 오류가 발생하면 가상환경을 사용하세요:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python3 main.py
 ```
 
 ### 3. 환경 설정
