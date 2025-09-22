@@ -233,23 +233,38 @@ class PostureWebSocketServer:
         log_server_start()
         
         try:
+            # 서버 설정 디버깅 정보
+            logger.info(f"서버 바인딩 시도 - 호스트: {self.host}, 포트: {self.port}")
+            
             # 통계 로깅 태스크 시작
             stats_task = asyncio.create_task(self.log_periodic_stats())
             
             # WebSocket 서버 시작
+            async def handler(websocket, path):
+                await self.handle_client(websocket, path)
+            
             server = await websockets.serve(
-                self.handle_client, 
+                handler, 
                 self.host, 
                 self.port,
                 ping_interval=config.SERVER_PING_INTERVAL,
                 ping_timeout=config.SERVER_PING_TIMEOUT
             )
             
-            logger.info(f"WebSocket 서버 시작 - 주소: ws://{self.host}:{self.port}")
+            logger.info(f"WebSocket 서버 시작 성공 - 주소: ws://{self.host}:{self.port}")
             
             # 서버 실행 유지
             await server.wait_closed()
             
+        except OSError as e:
+            if "could not bind" in str(e):
+                logger.error(f"포트 바인딩 실패: {e}")
+                logger.error(f"포트 {self.port}가 이미 사용 중이거나 권한이 없습니다.")
+                logger.info("해결 방법:")
+                logger.info("1. 다른 포트 사용: SERVER_PORT=8766")
+                logger.info("2. 기존 프로세스 종료: sudo lsof -ti:8765 | xargs sudo kill")
+                logger.info("3. 권한 확인: sudo 없이 1024 이상 포트 사용")
+            raise
         except Exception as e:
             log_error("SERVER_START", str(e))
             raise

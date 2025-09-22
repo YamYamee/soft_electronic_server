@@ -90,7 +90,7 @@ cp .env.example .env
 
 ```bash
 # 서버 설정
-SERVER_HOST=0.0.0.0          # 서버 호스트 주소
+SERVER_HOST=3.34.159.75      # 서버 호스트 주소 (AWS EC2)
 SERVER_PORT=8765             # 서버 포트 번호
 
 # 데이터베이스 설정
@@ -142,7 +142,82 @@ nohup python3 main.py > server.log 2>&1 &
 ps aux | grep main.py
 ```
 
-서버가 시작되면 환경 변수에서 설정한 주소(기본값: `ws://localhost:8765`)에서 WebSocket 연결을 받습니다.
+서버가 시작되면 환경 변수에서 설정한 주소(기본값: `ws://3.34.159.75:8765`)에서 WebSocket 연결을 받습니다.
+
+## AWS EC2 배포 가이드
+
+### 1. EC2 보안 그룹 설정
+
+AWS 콘솔에서 EC2 인스턴스의 보안 그룹에 다음 규칙을 추가하세요:
+
+```
+유형: 사용자 지정 TCP
+포트 범위: 8765
+소스: 0.0.0.0/0 (모든 IP에서 접근) 또는 특정 IP 범위
+설명: WebSocket Server Port
+```
+
+### 2. 서버 설정
+
+```bash
+# .env 파일 생성 및 설정
+cp .env.example .env
+
+# 서버 IP 확인 및 설정
+curl http://checkip.amazonaws.com  # 현재 EC2 공용 IP 확인
+echo "SERVER_HOST=3.34.159.75" > .env
+echo "SERVER_PORT=8765" >> .env
+```
+
+### 3. 방화벽 설정 (Ubuntu)
+
+```bash
+# UFW 방화벽에서 포트 8765 열기
+sudo ufw allow 8765
+sudo ufw status  # 상태 확인
+```
+
+### 4. 외부 연결 테스트
+
+```bash
+# 서버에서 포트 리스닝 확인
+sudo netstat -tlnp | grep :8765
+
+# 다른 컴퓨터에서 연결 테스트
+telnet 3.34.159.75 8765
+
+# WebSocket 클라이언트 연결 주소
+# ws://3.34.159.75:8765
+```
+
+### 5. 서버 자동 시작 설정 (systemd)
+
+```bash
+# 서비스 파일 생성
+sudo nano /etc/systemd/system/posture-server.service
+
+# 다음 내용 입력:
+[Unit]
+Description=Posture Recognition WebSocket Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/soft_electronic_server
+Environment=PATH=/home/ubuntu/soft_electronic_server/venv/bin
+ExecStart=/home/ubuntu/soft_electronic_server/venv/bin/python main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+# 서비스 활성화
+sudo systemctl daemon-reload
+sudo systemctl enable posture-server
+sudo systemctl start posture-server
+sudo systemctl status posture-server
+```
 
 ### 5. 테스트 클라이언트 실행
 
@@ -350,11 +425,61 @@ pip install -r requirements.txt
 2. 센서 배치가 훈련 데이터와 일치하는지 확인
 3. 로그에서 데이터 유효성 검사 결과 확인
 
-### 연결 문제
+### 연결 문제 (AWS EC2)
+
+#### 외부에서 서버에 연결할 수 없는 경우:
+
+1. **EC2 보안 그룹 확인**:
+
+   ```bash
+   # AWS 콘솔에서 보안 그룹 규칙 확인
+   # 포트 8765가 열려있는지 확인
+   ```
+
+2. **서버 IP 주소 확인**:
+
+   ```bash
+   # EC2 인스턴스의 공용 IP 확인
+   curl http://checkip.amazonaws.com
+   ```
+
+3. **서버 실행 상태 확인**:
+
+   ```bash
+   # 서버가 정상적으로 실행 중인지 확인
+   sudo netstat -tlnp | grep :8765
+   ps aux | grep main.py
+   ```
+
+4. **방화벽 설정 확인**:
+
+   ```bash
+   # Ubuntu 방화벽 상태 확인
+   sudo ufw status
+   # 포트 8765가 허용되어 있는지 확인
+   ```
+
+5. **로그 확인**:
+
+   ```bash
+   # 서버 로그에서 오류 메시지 확인
+   tail -f logs/posture_server.log
+   ```
+
+6. **클라이언트 연결 테스트**:
+   ```javascript
+   // JavaScript WebSocket 클라이언트 테스트
+   const ws = new WebSocket("ws://3.34.159.75:8765");
+   ws.onopen = () => console.log("연결 성공");
+   ws.onerror = (err) => console.error("연결 실패:", err);
+   ```
+
+#### 일반적인 연결 문제:
 
 1. 방화벽 설정 확인
-2. 서버 주소와 포트 번호 확인
+2. 서버 주소와 포트 번호 확인 (ws://3.34.159.75:8765)
 3. 네트워크 연결 상태 확인
+4. SSL/TLS 설정 확인 (HTTPS 환경에서는 WSS 필요)
 
 ## 라이센스
 

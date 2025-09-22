@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자세 인식 WebSocket 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .connection-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.disconnected {
+            background: #fee;
+            color: #c0392b;
+            border: 2px solid #e74c3c;
+        }
+
+        .status.connected {
+            background: #efe;
+            color: #27ae60;
+            border: 2px solid #27ae60;
+        }
+
+        .status.connecting {
+            background: #fef7e0;
+            color: #f39c12;
+            border: 2px solid #f39c12;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .panel h3 {
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .fsr-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .fsr-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .posture-result {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            text-align: center;
+        }
+
+        .posture-id {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .posture-name {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1.2em;
+            color: #27ae60;
+        }
+
+        .log-area {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-entry.sent {
+            color: #3498db;
+        }
+
+        .log-entry.received {
+            color: #27ae60;
+        }
+
+        .log-entry.error {
+            color: #e74c3c;
+        }
+
+        .posture-info {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .posture-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .posture-table th,
+        .posture-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .posture-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .fsr-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🪑 자세 인식 WebSocket 테스트</h1>
+            <p>실시간 FSR 센서 데이터 전송 및 자세 예측 테스트</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 연결 패널 -->
+            <div class="connection-panel">
+                <div class="input-group">
+                    <label for="serverUrl">서버 주소</label>
+                    <input type="text" id="serverUrl" value="ws://3.34.159.75:8765" placeholder="ws://서버주소:포트">
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-primary" onclick="setServerUrl('ws://localhost:8765')" style="padding: 5px 10px; font-size: 12px;">로컬</button>
+                        <button class="btn btn-primary" onclick="setServerUrl('ws://3.34.159.75:8765')" style="padding: 5px 10px; font-size: 12px;">AWS</button>
+                        <button class="btn btn-primary" onclick="setServerUrl('ws://127.0.0.1:8765')" style="padding: 5px 10px; font-size: 12px;">127.0.0.1</button>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="deviceId">디바이스 ID</label>
+                    <input type="text" id="deviceId" value="test_device_001" placeholder="디바이스 고유 ID">
+                </div>
+
+                <button class="btn btn-primary" onclick="connect()">연결</button>
+                <button class="btn btn-danger" onclick="disconnect()">연결 해제</button>
+                <button class="btn btn-success" onclick="sendRandomData()">랜덤 데이터 전송</button>
+                <button class="btn" style="background: #9b59b6; color: white;" onclick="testConnection()">연결 테스트</button>
+                
+                <div id="connectionStatus" class="status disconnected">
+                    🔴 연결 끊김
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- FSR 데이터 입력 -->
+                <div class="panel">
+                    <h3>📊 FSR 센서 데이터 입력</h3>
+                    <div class="fsr-grid">
+                        <input type="number" class="fsr-input" placeholder="센서1" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서2" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서3" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서4" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서5" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서6" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서7" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서8" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서9" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서10" min="0" max="1024" value="0">
+                        <input type="number" class="fsr-input" placeholder="센서11" min="0" max="1024" value="0">
+                    </div>
+                    <button class="btn btn-primary" onclick="sendFSRData()">FSR 데이터 전송</button>
+                    <button class="btn btn-success" onclick="fillRandomFSR()">랜덤 값 채우기</button>
+                </div>
+
+                <!-- 예측 결과 -->
+                <div class="panel">
+                    <h3>🎯 예측 결과</h3>
+                    <div class="posture-result">
+                        <div class="posture-id" id="postureId">-</div>
+                        <div class="posture-name" id="postureName">연결 대기중...</div>
+                        <div class="confidence" id="confidence">신뢰도: -</div>
+                    </div>
+                    
+                    <div class="posture-info">
+                        <h4>자세 분류 정보</h4>
+                        <table class="posture-table">
+                            <tr><th>ID</th><th>자세명</th></tr>
+                            <tr><td>0</td><td>정자세</td></tr>
+                            <tr><td>1</td><td>오른쪽 다리꼬기</td></tr>
+                            <tr><td>2</td><td>왼쪽 다리꼬기</td></tr>
+                            <tr><td>3</td><td>등 기대고 엉덩이 앞으로</td></tr>
+                            <tr><td>4</td><td>거북목(폰 보기)</td></tr>
+                            <tr><td>5</td><td>오른쪽 팔걸이</td></tr>
+                            <tr><td>6</td><td>왼쪽 팔걸이</td></tr>
+                            <tr><td>7</td><td>목 앞으로(컴퓨터)</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 로그 -->
+            <div class="panel" style="margin-top: 30px;">
+                <h3>📋 통신 로그</h3>
+                <div class="log-area" id="logArea">
+                    <div class="log-entry">웹소켓 연결을 시작하세요...</div>
+                </div>
+                <button class="btn btn-danger" onclick="clearLog()" style="margin-top: 10px;">로그 지우기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let websocket = null;
+        let messageId = 1;
+        
+        const postureNames = [
+            "정자세",
+            "오른쪽 다리꼬기", 
+            "왼쪽 다리꼬기",
+            "등 기대고 엉덩이 앞으로",
+            "거북목(폰 보기)",
+            "오른쪽 팔걸이",
+            "왼쪽 팔걸이", 
+            "목 앞으로(컴퓨터)"
+        ];
+
+        function updateStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `status ${status}`;
+            
+            const icons = {
+                'connected': '🟢',
+                'connecting': '🟡',
+                'disconnected': '🔴'
+            };
+            
+            statusEl.textContent = `${icons[status]} ${message}`;
+        }
+
+        function addLog(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function setServerUrl(url) {
+            document.getElementById('serverUrl').value = url;
+            addLog(`서버 주소 변경: ${url}`, 'info');
+        }
+
+        function testConnection() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            const urlParts = serverUrl.replace('ws://', '').replace('wss://', '').split(':');
+            const host = urlParts[0];
+            const port = urlParts[1] || '8765';
+            
+            addLog(`🔍 연결 테스트 시작: ${host}:${port}`, 'info');
+            
+            // 기본적인 URL 유효성 검사
+            if (!host || !port) {
+                addLog('❌ 잘못된 URL 형식입니다.', 'error');
+                return;
+            }
+            
+            // 간단한 연결 시도
+            const testWs = new WebSocket(serverUrl);
+            const timeout = setTimeout(() => {
+                testWs.close();
+                addLog('❌ 연결 시간 초과 (5초)', 'error');
+                addLog('💡 서버가 실행 중인지 확인하세요', 'error');
+            }, 5000);
+            
+            testWs.onopen = function() {
+                clearTimeout(timeout);
+                addLog('✅ 연결 테스트 성공!', 'received');
+                testWs.close();
+            };
+            
+            testWs.onerror = function() {
+                clearTimeout(timeout);
+                addLog('❌ 연결 테스트 실패', 'error');
+                addLog(`💡 확인사항:`, 'error');
+                addLog(`   1. 서버 실행: python3 main.py`, 'error');
+                addLog(`   2. 포트 열림: sudo netstat -tlnp | grep :${port}`, 'error');
+                addLog(`   3. 방화벽: sudo ufw allow ${port}`, 'error');
+            };
+        }
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            
+            if (!serverUrl) {
+                alert('서버 주소를 입력하세요.');
+                return;
+            }
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                addLog('이미 연결되어 있습니다.', 'error');
+                return;
+            }
+
+            updateStatus('connecting', '연결 중...');
+            addLog(`서버 연결 시도: ${serverUrl}`, 'info');
+
+            try {
+                websocket = new WebSocket(serverUrl);
+
+                websocket.onopen = function(event) {
+                    updateStatus('connected', '연결됨');
+                    addLog('✅ WebSocket 연결 성공!', 'received');
+                };
+
+                websocket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        addLog(`📥 수신: ${event.data}`, 'received');
+                        
+                        // 예측 결과 표시
+                        if (data.posture !== undefined) {
+                            updatePredictionResult(data);
+                        }
+                    } catch (e) {
+                        addLog(`❌ 메시지 파싱 오류: ${e.message}`, 'error');
+                    }
+                };
+
+                websocket.onclose = function(event) {
+                    updateStatus('disconnected', '연결 끊김');
+                    if (event.wasClean) {
+                        addLog(`🔴 연결 종료 (코드: ${event.code}, 이유: ${event.reason || '알 수 없음'})`, 'error');
+                    } else {
+                        addLog(`🔴 연결이 예기치 않게 끊어졌습니다. (코드: ${event.code})`, 'error');
+                    }
+                    
+                    // 자주 발생하는 오류 코드 해석
+                    const errorMessages = {
+                        1006: '연결 실패 - 서버가 응답하지 않거나 방화벽에 의해 차단됨',
+                        1000: '정상 종료',
+                        1001: '엔드포인트 종료',
+                        1002: '프로토콜 오류',
+                        1003: '지원되지 않는 데이터 타입',
+                        1011: '서버 내부 오류'
+                    };
+                    
+                    if (errorMessages[event.code]) {
+                        addLog(`💡 해석: ${errorMessages[event.code]}`, 'error');
+                    }
+                };
+
+                websocket.onerror = function(error) {
+                    updateStatus('disconnected', '연결 실패');
+                    addLog(`❌ WebSocket 오류: ${error}`, 'error');
+                    addLog(`💡 확인사항: 1) 서버 실행 여부 2) 주소 및 포트 3) 방화벽 설정`, 'error');
+                };
+
+            } catch (error) {
+                updateStatus('disconnected', '연결 실패');
+                addLog(`❌ 연결 오류: ${error.message}`, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+                updateStatus('disconnected', '연결 해제됨');
+                addLog('🔴 수동으로 연결을 해제했습니다.', 'info');
+            }
+        }
+
+        function sendFSRData() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                alert('먼저 서버에 연결하세요.');
+                return;
+            }
+
+            const fsrInputs = document.querySelectorAll('.fsr-input');
+            const fsrData = Array.from(fsrInputs).map(input => parseInt(input.value) || 0);
+            const deviceId = document.getElementById('deviceId').value.trim() || 'test_device';
+
+            const message = {
+                id: messageId++,
+                device_id: deviceId,
+                FSR: fsrData,
+                IMU: {
+                    accel: [0.1, 0.2, 9.8],
+                    gyro: [0.01, 0.02, 0.03]
+                }
+            };
+
+            websocket.send(JSON.stringify(message));
+            addLog(`📤 전송: ${JSON.stringify(message)}`, 'sent');
+        }
+
+        function sendRandomData() {
+            fillRandomFSR();
+            setTimeout(() => sendFSRData(), 100);
+        }
+
+        function fillRandomFSR() {
+            const fsrInputs = document.querySelectorAll('.fsr-input');
+            fsrInputs.forEach(input => {
+                input.value = Math.floor(Math.random() * 800) + 100; // 100-900 범위
+            });
+        }
+
+        function updatePredictionResult(data) {
+            const postureId = data.posture;
+            const confidence = data.confidence;
+            
+            document.getElementById('postureId').textContent = postureId;
+            document.getElementById('postureName').textContent = postureNames[postureId] || '알 수 없음';
+            document.getElementById('confidence').textContent = `신뢰도: ${(confidence * 100).toFixed(1)}%`;
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '<div class="log-entry">로그가 지워졌습니다.</div>';
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            addLog('🌐 테스트 페이지가 로드되었습니다.', 'info');
+            fillRandomFSR(); // 초기 랜덤 값 설정
+        });
+
+        // 페이지 종료 시 연결 정리
+        window.addEventListener('beforeunload', function() {
+            if (websocket) {
+                websocket.close();
+            }
+        });
+    </script>
+</body>
+</html>
