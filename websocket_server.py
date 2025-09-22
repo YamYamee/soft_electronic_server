@@ -151,7 +151,7 @@ class PostureWebSocketServer:
             log_error("SEND_ERROR", str(e), client_id)
             return False
     
-    async def handle_client(self, websocket, path):
+    async def handle_client(self, websocket, path=None):
         """클라이언트 연결 처리"""
         client_id = await self.register_client(websocket)
         
@@ -240,11 +240,8 @@ class PostureWebSocketServer:
             stats_task = asyncio.create_task(self.log_periodic_stats())
             
             # WebSocket 서버 시작
-            async def handler(websocket, path):
-                await self.handle_client(websocket, path)
-            
             server = await websockets.serve(
-                handler, 
+                self.handle_client, 
                 self.host, 
                 self.port,
                 ping_interval=config.SERVER_PING_INTERVAL,
