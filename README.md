@@ -28,9 +28,36 @@
 ### 1. 요구사항
 
 - Python 3.7 이상
-- 필요한 패키지들은 자동으로 설치됩니다
+- pip (Python 패키지 관리자)
 
-### 2. 환경 설정
+### 2. 의존성 패키지 설치
+
+#### Windows 환경:
+
+```bash
+# 패키지 자동 설치 (프로그램에서 자동 처리)
+python main.py
+```
+
+#### Ubuntu/Linux 환경:
+
+```bash
+# Python3와 pip 설치 (Ubuntu)
+sudo apt update
+sudo apt install python3 python3-pip
+
+# 프로젝트 의존성 설치
+pip3 install -r requirements.txt
+
+# 또는 개별 설치
+pip3 install websockets numpy pandas scikit-learn joblib aiofiles
+
+# 스크립트 실행 권한 부여
+chmod +x install_ubuntu.sh
+chmod +x server_manager.sh
+```
+
+### 3. 환경 설정
 
 프로젝트 루트 디렉토리에 `.env` 파일을 생성하여 환경 변수를 설정할 수 있습니다:
 
@@ -57,16 +84,49 @@ LOG_LEVEL=INFO               # 로그 레벨 (DEBUG, INFO, WARNING, ERROR)
 LOG_FILE=posture_server.log  # 로그 파일 이름
 ```
 
-### 3. 서버 실행
+### 4. 서버 실행
+
+#### Ubuntu 서버 빠른 시작:
+
+```bash
+# 1. 자동 설치 스크립트 실행
+bash install_ubuntu.sh
+
+# 2. 서버 시작
+bash server_manager.sh start
+
+# 3. 서버 상태 확인
+bash server_manager.sh status
+
+# 4. 로그 확인
+bash server_manager.sh logs
+```
+
+#### Windows 환경:
 
 ```bash
 # 메인 서버 실행
 python main.py
 ```
 
+#### Ubuntu/Linux 환경:
+
+```bash
+# 메인 서버 실행
+python3 main.py
+
+# 백그라운드 실행 (선택사항)
+nohup python3 main.py > server.log 2>&1 &
+
+# 프로세스 확인
+ps aux | grep main.py
+```
+
 서버가 시작되면 환경 변수에서 설정한 주소(기본값: `ws://localhost:8765`)에서 WebSocket 연결을 받습니다.
 
-### 4. 테스트 클라이언트 실행
+### 5. 테스트 클라이언트 실행
+
+#### Windows 환경:
 
 ```bash
 # 대화형 테스트 클라이언트
@@ -74,6 +134,16 @@ python test_client.py
 
 # 스트레스 테스트
 python test_client.py stress
+```
+
+#### Ubuntu/Linux 환경:
+
+```bash
+# 대화형 테스트 클라이언트
+python3 test_client.py
+
+# 스트레스 테스트
+python3 test_client.py stress
 ```
 
 ## API 사용법
@@ -142,7 +212,16 @@ soft_electronic_server/
 ├── model_predictor.py      # 머신러닝 모델 예측 모듈
 ├── database.py             # 데이터베이스 관리 모듈
 ├── logger_config.py        # 로깅 설정 모듈
+├── config.py               # 환경 변수 설정 모듈
 ├── test_client.py          # 테스트 클라이언트
+├── simple_test.py          # 간단한 기능 테스트
+├── requirements.txt        # Python 의존성 패키지 목록
+├── install_ubuntu.sh       # Ubuntu 자동 설치 스크립트
+├── server_manager.sh       # 서버 관리 스크립트
+├── .env                    # 환경 변수 설정 파일
+├── .env.example            # 환경 변수 예시 파일
+├── .gitignore              # Git 제외 파일 목록
+├── README.md               # 상세 사용 설명서
 ├── model_lr.joblib         # 훈련된 머신러닝 모델
 ├── posture_data.db         # SQLite 데이터베이스 (자동 생성)
 ├── logs/                   # 로그 파일 디렉토리
@@ -201,9 +280,49 @@ soft_electronic_server/
 
 ### 서버가 시작되지 않는 경우
 
+#### Windows 환경:
+
 1. 포트 8765가 사용 중인지 확인
 2. Python 환경 및 패키지 설치 상태 확인
 3. `model_lr.joblib` 파일이 존재하는지 확인
+
+#### Ubuntu/Linux 환경:
+
+1. **의존성 패키지 설치**:
+   ```bash
+   pip3 install -r requirements.txt
+   ```
+2. **포트 사용 확인**:
+   ```bash
+   sudo netstat -tlnp | grep :8765
+   # 또는
+   sudo ss -tlnp | grep :8765
+   ```
+3. **방화벽 설정**:
+   ```bash
+   # Ubuntu UFW 방화벽 포트 열기
+   sudo ufw allow 8765
+   ```
+4. **권한 문제**:
+   ```bash
+   # 실행 권한 확인
+   chmod +x main.py
+   ```
+
+### 패키지 설치 오류 (Ubuntu)
+
+```bash
+# pip 업데이트
+python3 -m pip install --upgrade pip
+
+# 시스템 패키지 설치
+sudo apt install python3-dev python3-setuptools
+
+# 가상환경 사용 (권장)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ### 예측 정확도가 낮은 경우
 
