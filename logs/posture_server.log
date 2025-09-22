@@ -1,0 +1,123 @@
+2025-09-22 11:41:10,946 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:41:10,947 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:41:10,947 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:41:10,948 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:41:10,948 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:41:10,948 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:41:10,951 - __main__ - INFO - main:32 - 자세 인식 WebSocket 서버를 시작합니다...
+2025-09-22 11:41:10,952 - __main__ - INFO - main:33 - 서버 주소: ws://0.0.0.0:8765
+2025-09-22 11:41:10,952 - __main__ - INFO - main:34 - Ctrl+C를 눌러 서버를 종료할 수 있습니다.
+2025-09-22 11:41:10,953 - logger_config - INFO - log_server_start:58 - ============================================================
+2025-09-22 11:41:10,953 - logger_config - INFO - log_server_start:59 - 자세 인식 WebSocket 서버 시작
+2025-09-22 11:41:10,954 - logger_config - INFO - log_server_start:60 - 시작 시간: 2025-09-22 11:41:10
+2025-09-22 11:41:10,954 - logger_config - INFO - log_server_start:61 - ============================================================
+2025-09-22 11:41:11,164 - websocket_server - INFO - start_server:247 - WebSocket 서버 시작 - 주소: ws://0.0.0.0:8765
+2025-09-22 11:41:21,746 - __main__ - INFO - signal_handler:18 - 시그널 2 수신, 서버를 종료합니다...
+2025-09-22 11:41:21,746 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:41:21,747 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:41:21,747 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:41:21
+2025-09-22 11:41:21,747 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:41:21,747 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:41:21
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:41:21
+2025-09-22 11:41:21,748 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:42:04,289 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:42:04,290 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:42:04,290 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:42:04,291 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:42:04,291 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:42:04,291 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:42:04,296 - __main__ - INFO - main:32 - 자세 인식 WebSocket 서버를 시작합니다...
+2025-09-22 11:42:04,296 - __main__ - INFO - main:33 - 서버 주소: ws://0.0.0.0:8765
+2025-09-22 11:42:04,297 - __main__ - INFO - main:34 - Ctrl+C를 눌러 서버를 종료할 수 있습니다.
+2025-09-22 11:42:04,297 - logger_config - INFO - log_server_start:58 - ============================================================
+2025-09-22 11:42:04,297 - logger_config - INFO - log_server_start:59 - 자세 인식 WebSocket 서버 시작
+2025-09-22 11:42:04,297 - logger_config - INFO - log_server_start:60 - 시작 시간: 2025-09-22 11:42:04
+2025-09-22 11:42:04,298 - logger_config - INFO - log_server_start:61 - ============================================================
+2025-09-22 11:42:04,323 - websocket_server - INFO - start_server:247 - WebSocket 서버 시작 - 주소: ws://0.0.0.0:8765
+2025-09-22 11:42:19,539 - __main__ - INFO - signal_handler:18 - 시그널 2 수신, 서버를 종료합니다...
+2025-09-22 11:42:19,539 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:42:19,539 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:42:19
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:42:19
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:42:19,540 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:42:19,541 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:42:19,541 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:42:19
+2025-09-22 11:42:19,541 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:44:09,963 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:44:09,963 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:44:09,964 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:44:09,964 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:44:09,965 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:44:09,965 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:44:09,971 - __main__ - INFO - main:32 - 자세 인식 WebSocket 서버를 시작합니다...
+2025-09-22 11:44:09,971 - __main__ - INFO - main:33 - 서버 주소: ws://0.0.0.0:8765
+2025-09-22 11:44:09,971 - __main__ - INFO - main:34 - Ctrl+C를 눌러 서버를 종료할 수 있습니다.
+2025-09-22 11:44:09,971 - logger_config - INFO - log_server_start:58 - ============================================================
+2025-09-22 11:44:09,971 - logger_config - INFO - log_server_start:59 - 자세 인식 WebSocket 서버 시작
+2025-09-22 11:44:09,972 - logger_config - INFO - log_server_start:60 - 시작 시간: 2025-09-22 11:44:09
+2025-09-22 11:44:09,972 - logger_config - INFO - log_server_start:61 - ============================================================
+2025-09-22 11:44:10,018 - websocket_server - INFO - start_server:247 - WebSocket 서버 시작 - 주소: ws://0.0.0.0:8765
+2025-09-22 11:45:10,026 - logger_config - INFO - log_performance_metrics:92 - 성능 메트릭 - 연결 클라이언트: 0, 초당 예측: 0.0, 평균 응답시간: 0.0ms
+2025-09-22 11:46:08,980 - __main__ - INFO - signal_handler:18 - 시그널 2 수신, 서버를 종료합니다...
+2025-09-22 11:46:08,980 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:46:08,981 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:46:08,981 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:46:08
+2025-09-22 11:46:08,981 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:46:08,982 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:46:08,982 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:46:08,982 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:46:08
+2025-09-22 11:46:08,982 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:46:08,982 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:46:08,982 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:46:08,983 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:46:08
+2025-09-22 11:46:08,983 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:46:21,658 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:46:21,658 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:46:21,658 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:46:21,659 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:46:21,659 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:46:21,659 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:46:21,662 - __main__ - INFO - main:32 - 자세 인식 WebSocket 서버를 시작합니다...
+2025-09-22 11:46:21,663 - __main__ - INFO - main:33 - 서버 주소: ws://0.0.0.0:8765
+2025-09-22 11:46:21,663 - __main__ - INFO - main:34 - Ctrl+C를 눌러 서버를 종료할 수 있습니다.
+2025-09-22 11:46:21,663 - logger_config - INFO - log_server_start:58 - ============================================================
+2025-09-22 11:46:21,663 - logger_config - INFO - log_server_start:59 - 자세 인식 WebSocket 서버 시작
+2025-09-22 11:46:21,663 - logger_config - INFO - log_server_start:60 - 시작 시간: 2025-09-22 11:46:21
+2025-09-22 11:46:21,663 - logger_config - INFO - log_server_start:61 - ============================================================
+2025-09-22 11:46:21,687 - websocket_server - INFO - start_server:247 - WebSocket 서버 시작 - 주소: ws://0.0.0.0:8765
+2025-09-22 11:46:29,223 - __main__ - INFO - signal_handler:18 - 시그널 2 수신, 서버를 종료합니다...
+2025-09-22 11:46:29,224 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:46:29,224 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:46:29,224 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:46:29
+2025-09-22 11:46:29,224 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:46:29,225 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:46:29,225 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:46:29,225 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:46:29
+2025-09-22 11:46:29,225 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:46:29,226 - logger_config - INFO - log_server_shutdown:66 - ============================================================
+2025-09-22 11:46:29,226 - logger_config - INFO - log_server_shutdown:67 - 자세 인식 WebSocket 서버 종료
+2025-09-22 11:46:29,226 - logger_config - INFO - log_server_shutdown:68 - 종료 시간: 2025-09-22 11:46:29
+2025-09-22 11:46:29,226 - logger_config - INFO - log_server_shutdown:69 - ============================================================
+2025-09-22 11:46:43,404 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:46:43,406 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:46:43,406 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:46:43,406 - root - INFO - setup_logging:49 - 로깅 시스템 초기화 완료
+2025-09-22 11:46:43,407 - root - INFO - setup_logging:50 - 로그 레벨: INFO
+2025-09-22 11:46:43,407 - root - INFO - setup_logging:51 - 로그 파일: logs\posture_server.log
+2025-09-22 11:46:43,410 - __main__ - INFO - main:32 - 자세 인식 WebSocket 서버를 시작합니다...
+2025-09-22 11:46:43,410 - __main__ - INFO - main:33 - 서버 주소: ws://0.0.0.0:8765
+2025-09-22 11:46:43,411 - __main__ - INFO - main:34 - Ctrl+C를 눌러 서버를 종료할 수 있습니다.
+2025-09-22 11:46:43,411 - logger_config - INFO - log_server_start:58 - ============================================================
+2025-09-22 11:46:43,411 - logger_config - INFO - log_server_start:59 - 자세 인식 WebSocket 서버 시작
+2025-09-22 11:46:43,411 - logger_config - INFO - log_server_start:60 - 시작 시간: 2025-09-22 11:46:43
+2025-09-22 11:46:43,411 - logger_config - INFO - log_server_start:61 - ============================================================
+2025-09-22 11:46:43,433 - websocket_server - INFO - start_server:247 - WebSocket 서버 시작 - 주소: ws://0.0.0.0:8765
