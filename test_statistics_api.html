@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자세 통계 API 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .config-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #74b9ff;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary { background: #74b9ff; color: white; }
+        .btn-success { background: #00b894; color: white; }
+        .btn-warning { background: #fdcb6e; color: #333; }
+        .btn-danger { background: #e17055; color: white; }
+        .btn-info { background: #6c5ce7; color: white; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .panel h3 {
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #74b9ff;
+            padding-bottom: 10px;
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 3px solid #74b9ff;
+        }
+
+        .score-number {
+            font-size: 4em;
+            font-weight: bold;
+            color: #74b9ff;
+            margin-bottom: 10px;
+        }
+
+        .score-grade {
+            font-size: 2em;
+            margin-bottom: 15px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+        }
+
+        .grade-A { background: #00b894; color: white; }
+        .grade-B { background: #fdcb6e; color: #333; }
+        .grade-C { background: #e17055; color: white; }
+        .grade-D { background: #636e72; color: white; }
+
+        .score-feedback {
+            font-size: 1.2em;
+            color: #333;
+            margin-top: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #74b9ff;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .result-area {
+            background: #2d3436;
+            color: #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-success { color: #00b894; }
+        .log-error { color: #e17055; }
+        .log-info { color: #74b9ff; }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 자세 통계 API 테스트</h1>
+            <p>실시간 자세 분석 및 점수 평가 시스템</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 설정 패널 -->
+            <div class="config-panel">
+                <h3>⚙️ API 설정</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <div class="input-group">
+                        <label for="apiUrl">API 서버 주소</label>
+                        <input type="text" id="apiUrl" value="http://localhost:8766" placeholder="http://서버주소:포트">
+                    </div>
+                    <div class="input-group">
+                        <label for="deviceId">디바이스 ID (선택)</label>
+                        <input type="text" id="deviceId" value="" placeholder="test_device_001">
+                    </div>
+                    <div class="input-group">
+                        <label for="targetDate">조회 날짜</label>
+                        <input type="date" id="targetDate">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="setApiUrl('http://localhost:8766')">로컬</button>
+                    <button class="btn btn-primary" onclick="setApiUrl('http://3.34.159.75:8766')">AWS</button>
+                    <button class="btn btn-info" onclick="testConnection()">연결 테스트</button>
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- 자세 점수 패널 -->
+                <div class="panel">
+                    <h3>🏆 자세 점수</h3>
+                    <div class="score-display" id="scoreDisplay">
+                        <div class="score-number" id="scoreNumber">-</div>
+                        <div class="score-grade" id="scoreGrade">-</div>
+                        <div class="score-feedback" id="scoreFeedback">점수를 조회해보세요!</div>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="getTodayScore()">오늘 점수 조회</button>
+                    <button class="btn btn-primary" onclick="getDateScore()">날짜별 점수</button>
+                    <button class="btn btn-warning" onclick="getPostureStats()">자세별 통계</button>
+                    
+                    <div class="stats-grid" id="scoreStats" style="margin-top: 20px;">
+                        <!-- 점수 상세 정보가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+
+                <!-- API 테스트 패널 -->
+                <div class="panel">
+                    <h3>🔧 API 테스트</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-info" onclick="getHealthCheck()">헬스 체크</button>
+                        <button class="btn btn-primary" onclick="getPostureLabels()">자세 라벨</button>
+                        <button class="btn btn-warning" onclick="getDailyStats()">일일 통계</button>
+                        <button class="btn btn-success" onclick="getSummary()">요약 통계</button>
+                        <button class="btn btn-info" onclick="getSessions()">세션 목록</button>
+                        <button class="btn btn-danger" onclick="resetData()" style="margin-top: 10px;">⚠️ 데이터 초기화</button>
+                    </div>
+                    
+                    <div class="result-area" id="resultArea">
+                        <div class="log-entry log-info">[시작] API 테스트 준비 완료</div>
+                        <div class="log-entry log-info">버튼을 클릭하여 API를 테스트해보세요.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 오늘 날짜로 초기화
+        document.getElementById('targetDate').value = new Date().toISOString().split('T')[0];
+
+        function setApiUrl(url) {
+            document.getElementById('apiUrl').value = url;
+            addLog(`API 서버 주소 변경: ${url}`, 'info');
+        }
+
+        function addLog(message, type = 'info') {
+            const resultArea = document.getElementById('resultArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            resultArea.appendChild(logEntry);
+            resultArea.scrollTop = resultArea.scrollHeight;
+        }
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.trim();
+        }
+
+        function getDeviceId() {
+            const deviceId = document.getElementById('deviceId').value.trim();
+            return deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : '';
+        }
+
+        async function makeApiCall(endpoint, method = 'GET') {
+            const url = `${getApiUrl()}${endpoint}`;
+            addLog(`📤 ${method} ${endpoint}`, 'info');
+            
+            try {
+                const response = await fetch(url, { method });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✅ 응답 성공 (${response.status})`, 'success');
+                    addLog(JSON.stringify(data, null, 2), 'success');
+                    return data;
+                } else {
+                    addLog(`❌ 응답 오류 (${response.status}): ${data.detail || '알 수 없는 오류'}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                addLog(`❌ 연결 오류: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function testConnection() {
+            await makeApiCall('/health');
+        }
+
+        async function getTodayScore() {
+            const data = await makeApiCall(`/statistics/score/today${getDeviceId()}`);
+            if (data) {
+                updateScoreDisplay(data);
+            }
+        }
+
+        async function getDateScore() {
+            const date = document.getElementById('targetDate').value;
+            if (!date) {
+                addLog('❌ 날짜를 선택해주세요', 'error');
+                return;
+            }
+            
+            const deviceParam = getDeviceId();
+            const endpoint = `/statistics/score/${date}${deviceParam}`;
+            const data = await makeApiCall(endpoint);
+            if (data) {
+                updateScoreDisplay(data);
+            }
+        }
+
+        function updateScoreDisplay(scoreData) {
+            document.getElementById('scoreNumber').textContent = scoreData.total_score;
+            
+            const gradeElement = document.getElementById('scoreGrade');
+            gradeElement.textContent = scoreData.grade;
+            gradeElement.className = `score-grade grade-${scoreData.grade.charAt(0)}`;
+            
+            document.getElementById('scoreFeedback').textContent = scoreData.feedback;
+            
+            // 상세 통계 표시
+            const statsContainer = document.getElementById('scoreStats');
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${scoreData.good_posture_score}</div>
+                    <div class="stat-label">바른 자세 점수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">-${scoreData.bad_posture_penalty}</div>
+                    <div class="stat-label">나쁜 자세 감점</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${scoreData.session_stability_score}</div>
+                    <div class="stat-label">안정성 점수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${scoreData.good_posture_percentage}%</div>
+                    <div class="stat-label">바른 자세 비율</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(scoreData.monitoring_time_minutes)}분</div>
+                    <div class="stat-label">모니터링 시간</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="font-size: 1.2em;">${scoreData.worst_posture}</div>
+                    <div class="stat-label">주의 자세</div>
+                </div>
+            `;
+        }
+
+        async function getHealthCheck() {
+            await makeApiCall('/health');
+        }
+
+        async function getPostureLabels() {
+            await makeApiCall('/postures');
+        }
+
+        async function getPostureStats() {
+            const deviceParam = getDeviceId();
+            await makeApiCall(`/statistics/postures${deviceParam}`);
+        }
+
+        async function getDailyStats() {
+            const date = document.getElementById('targetDate').value;
+            if (!date) {
+                addLog('❌ 날짜를 선택해주세요', 'error');
+                return;
+            }
+            
+            const deviceParam = getDeviceId();
+            const endpoint = `/statistics/daily/${date}${deviceParam}`;
+            await makeApiCall(endpoint);
+        }
+
+        async function getSummary() {
+            const deviceParam = getDeviceId().replace('?', '&') || '?';
+            await makeApiCall(`/statistics/summary${deviceParam}days=7`);
+        }
+
+        async function getSessions() {
+            const deviceParam = getDeviceId().replace('?', '&') || '?';
+            await makeApiCall(`/statistics/sessions${deviceParam}limit=20`);
+        }
+
+        async function resetData() {
+            if (!confirm('⚠️ 정말로 모든 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다!')) {
+                return;
+            }
+            
+            addLog('🗑️ 데이터 초기화 중...', 'info');
+            await makeApiCall('/data/reset?confirm=true', 'DELETE');
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            addLog('🌐 자세 통계 API 테스트 페이지 로드 완료', 'info');
+            addLog('버튼을 클릭하여 다양한 API를 테스트해보세요!', 'info');
+        });
+    </script>
+</body>
+</html>

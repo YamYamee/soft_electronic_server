@@ -20,9 +20,9 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 class PostureWebSocketServer:
-    def __init__(self, host="localhost", port=8765):
-        self.host = host
-        self.port = port
+    def __init__(self, host=None, port=None):
+        self.host = host or config.SERVER_HOST
+        self.port = port or config.WEBSOCKET_PORT
         self.connected_clients: Dict[str, websockets.WebSocketServerProtocol] = {}
         self.client_info: Dict[str, Dict] = {}
         self.performance_stats = {
@@ -267,11 +267,15 @@ class PostureWebSocketServer:
             raise
         finally:
             log_server_shutdown()
+# 서버 시작 함수
+async def start_websocket_server():
+    """WebSocket 서버 시작 (다른 모듈에서 호출용)"""
+    server = PostureWebSocketServer()
+    await server.start_server()
 
 # 메인 실행 함수
 async def main():
-    server = PostureWebSocketServer()
-    await server.start_server()
+    await start_websocket_server()
 
 if __name__ == "__main__":
     try:

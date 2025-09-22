@@ -1,12 +1,16 @@
 """
-자세 인식 WebSocket 서버 메인 실행 파일
+자세 인식 통합 서버 메인 실행 파일
+WebSocket 서버와 REST API 서버를 동시에 실행
 """
 
 import asyncio
 import signal
 import sys
+import threading
 import logging
-from websocket_server import PostureWebSocketServer
+import uvicorn
+from websocket_server import start_websocket_server
+from statistics_api import app as fastapi_app
 from logger_config import setup_logging, log_server_start, log_server_shutdown
 from config import config
 
@@ -20,24 +24,45 @@ def signal_handler(signum, frame):
     log_server_shutdown()
     sys.exit(0)
 
+def run_fastapi_server():
+    """FastAPI 서버 실행 (별도 스레드)"""
+    try:
+        uvicorn.run(
+            fastapi_app,
+            host=config.SERVER_HOST,
+            port=config.API_PORT,
+            log_level="info",
+            access_log=False  # 너무 많은 로그 방지
+        )
+    except Exception as e:
+        logger.error(f"FastAPI 서버 오류: {e}")
+
 async def main():
     """메인 함수"""
     # 시그널 핸들러 등록
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # 서버 설정 (환경 변수에서 로드)
-    host = config.SERVER_HOST
-    port = config.SERVER_PORT
-    
-    logger.info("자세 인식 WebSocket 서버를 시작합니다...")
-    logger.info(f"서버 주소: ws://{host}:{port}")
+    logger.info("=== 자세 인식 통합 서버 시작 ===")
+    logger.info(f"WebSocket 서버: ws://{config.SERVER_HOST}:{config.WEBSOCKET_PORT}")
+    logger.info(f"REST API 서버: http://{config.SERVER_HOST}:{config.API_PORT}")
+    logger.info(f"API 문서: http://{config.SERVER_HOST}:{config.API_PORT}/docs")
     logger.info("Ctrl+C를 눌러 서버를 종료할 수 있습니다.")
+    logger.info("=====================================")
     
     try:
-        # 서버 인스턴스 생성 및 시작
-        server = PostureWebSocketServer(host=host, port=port)
-        await server.start_server()
+        # FastAPI 서버를 별도 스레드에서 실행
+        fastapi_thread = threading.Thread(
+            target=run_fastapi_server, 
+            daemon=True,
+            name="FastAPI-Server"
+        )
+        fastapi_thread.start()
+        logger.info("FastAPI 서버 스레드 시작됨")
+        
+        # WebSocket 서버를 메인 스레드에서 실행
+        logger.info("WebSocket 서버 시작 중...")
+        await start_websocket_server()
         
     except KeyboardInterrupt:
         logger.info("사용자에 의해 서버가 종료되었습니다")

@@ -1,27 +1,30 @@
-# 자세 인식 WebSocket 서버
+# 자세 인식 통합 서버 (WebSocket + REST API)
 
-실시간으로 FSR(Force Sensitive Resistor) 센서 데이터를 받아 머신러닝 모델을 통해 사용자의 앉은 자세를 분석하는 WebSocket 서버입니다.
+실시간으로 FSR(Force Sensitive Resistor) 센서 데이터를 받아 머신러닝 모델을 통해 사용자의 앉은 자세를 분석하는 통합 서버입니다. WebSocket을 통한 실시간 자세 인식과 REST API를 통한 통계 분석 기능을 제공합니다.
 
-## 기능
+## 주요 기능
 
-- **WebSocket 서버**: 애플리케이션과 실시간 통신
+- **WebSocket 서버**: 애플리케이션과 실시간 통신 (포트 8765)
+- **REST API 서버**: 통계 및 분석 기능 (포트 8766)
 - **자세 분류**: 8가지 앉은 자세 실시간 분석
+- **자세 점수**: 100점 만점 자세 평가 시스템
+- **통계 분석**: 자세별 시간 통계, 일일/주간 리포트
 - **머신러닝 모델**: 기 훈련된 모델을 사용한 빠른 예측
 - **데이터베이스 저장**: SQLite를 사용한 예측 결과 저장
 - **상세 로깅**: 서버 동작 및 성능 모니터링
 
 ## 지원 자세 분류
 
-| ID  | 자세명                         | 설명                                      |
-| --- | ------------------------------ | ----------------------------------------- |
-| 0   | 바른 자세                      | 올바른 앉은 자세                          |
-| 1   | 거북목 자세                    | 목을 앞으로 내민 자세                     |
-| 2   | 목 숙이기                      | 고개를 아래로 숙인 자세                   |
-| 3   | 앞으로 당겨 기대기             | 몸을 앞으로 당겨서 기대는 자세            |
-| 4   | 오른쪽으로 기대기              | 몸을 오른쪽으로 기울인 자세               |
-| 5   | 왼쪽으로 기대기                | 몸을 왼쪽으로 기울인 자세                 |
-| 6   | 오른쪽 다리 꼭기               | 오른쪽 다리를 왼쪽 다리 위에 올린 자세    |
-| 7   | 왼쪽 다리 꼭기                 | 왼쪽 다리를 오른쪽 다리 위에 올린 자세    |
+| ID  | 자세명             | 설명                                   |
+| --- | ------------------ | -------------------------------------- |
+| 0   | 바른 자세          | 올바른 앉은 자세                       |
+| 1   | 거북목 자세        | 목을 앞으로 내민 자세                  |
+| 2   | 목 숙이기          | 고개를 아래로 숙인 자세                |
+| 3   | 앞으로 당겨 기대기 | 몸을 앞으로 당겨서 기대는 자세         |
+| 4   | 오른쪽으로 기대기  | 몸을 오른쪽으로 기울인 자세            |
+| 5   | 왼쪽으로 기대기    | 몸을 왼쪽으로 기울인 자세              |
+| 6   | 오른쪽 다리 꼭기   | 오른쪽 다리를 왼쪽 다리 위에 올린 자세 |
+| 7   | 왼쪽 다리 꼭기     | 왼쪽 다리를 오른쪽 다리 위에 올린 자세 |
 
 ## 설치 및 실행
 
@@ -90,8 +93,9 @@ cp .env.example .env
 
 ```bash
 # 서버 설정
-SERVER_HOST=3.34.159.75      # 서버 호스트 주소 (AWS EC2)
-SERVER_PORT=8765             # 서버 포트 번호
+SERVER_HOST=0.0.0.0          # 서버 호스트 주소
+WEBSOCKET_PORT=8765          # WebSocket 서버 포트
+API_PORT=8766                # REST API 서버 포트
 
 # 데이터베이스 설정
 DATABASE_PATH=posture_data.db # 데이터베이스 파일 경로
@@ -112,7 +116,7 @@ LOG_FILE=posture_server.log  # 로그 파일 이름
 # 1. 자동 설치 스크립트 실행
 bash install_ubuntu.sh
 
-# 2. 서버 시작
+# 2. 통합 서버 시작 (WebSocket + REST API)
 bash server_manager.sh start
 
 # 3. 서버 상태 확인
@@ -125,14 +129,18 @@ bash server_manager.sh logs
 #### Windows 환경:
 
 ```bash
-# 메인 서버 실행
+# 통합 서버 실행 (WebSocket + REST API)
 python main.py
+
+# 개별 서버 실행도 가능:
+# python websocket_server.py    # WebSocket만
+# python statistics_api.py      # REST API만
 ```
 
 #### Ubuntu/Linux 환경:
 
 ```bash
-# 메인 서버 실행
+# 통합 서버 실행
 python3 main.py
 
 # 백그라운드 실행 (선택사항)
@@ -142,7 +150,11 @@ nohup python3 main.py > server.log 2>&1 &
 ps aux | grep main.py
 ```
 
-서버가 시작되면 환경 변수에서 설정한 주소(기본값: `ws://3.34.159.75:8765`)에서 WebSocket 연결을 받습니다.
+#### 실행 후 접속 주소:
+- **WebSocket 서버**: `ws://localhost:8765` (실시간 자세 인식)
+- **REST API 서버**: `http://localhost:8766` (통계 조회)
+- **API 문서**: `http://localhost:8766/docs` (Swagger UI)
+- **API 스키마**: `http://localhost:8766/redoc` (ReDoc)
 
 ## AWS EC2 배포 가이드
 
@@ -236,6 +248,74 @@ python test_client.py stress
 ```bash
 # 대화형 테스트 클라이언트
 python3 test_client.py
+
+# 스트레스 테스트
+python3 test_client.py stress
+```
+
+#### 웹 기반 테스트:
+
+브라우저에서 다음 파일들을 열어 테스트할 수 있습니다:
+
+- **WebSocket 테스트**: `test_web.html` (자세 인식 테스트)
+- **통계 API 테스트**: `test_statistics_api.html` (통계 조회 및 점수 확인)
+
+### 6. REST API 사용법
+
+#### 📊 자세 점수 조회 (100점 만점)
+
+```bash
+# 오늘의 자세 점수
+curl http://localhost:8766/statistics/score/today
+
+# 특정 날짜 자세 점수
+curl http://localhost:8766/statistics/score/2024-01-15
+
+# 응답 예시:
+{
+    "total_score": 78,
+    "good_posture_score": 45,
+    "bad_posture_penalty": 12,
+    "session_stability_score": 15,
+    "good_posture_percentage": 75.0,
+    "grade": "B+",
+    "feedback": "👍 좋은 자세! 바른 자세를 조금 더 유지해보세요."
+}
+```
+
+#### 📈 자세별 시간 통계
+
+```bash
+# 자세별 통계 조회
+curl "http://localhost:8766/statistics/postures?start_date=2024-01-01&end_date=2024-01-15"
+
+# 일일 통계
+curl http://localhost:8766/statistics/daily/2024-01-15
+
+# 통계 요약 (최근 7일)
+curl "http://localhost:8766/statistics/summary?days=7"
+```
+
+#### 🔧 관리 기능
+
+```bash
+# 헬스 체크
+curl http://localhost:8766/health
+
+# 자세 라벨 목록
+curl http://localhost:8766/postures
+
+# ⚠️ 데이터 초기화 (주의!)
+curl -X DELETE "http://localhost:8766/data/reset?confirm=true"
+```
+
+#### 📚 API 문서
+
+서버 실행 후 브라우저에서 다음 주소로 API 문서를 확인할 수 있습니다:
+
+- **Swagger UI**: `http://localhost:8766/docs`
+- **ReDoc**: `http://localhost:8766/redoc`
+- **상세 명세서**: `API_SPECIFICATION.md` 파일 참조
 
 # 스트레스 테스트
 python3 test_client.py stress
@@ -363,6 +443,60 @@ soft_electronic_server/
 - 초당 예측 처리 수
 - 평균 응답 시간
 - 서버 가동 시간
+
+## 파일 구조
+
+```
+soft_electronic_server/
+├── main.py                      # 통합 서버 메인 실행 파일
+├── websocket_server.py          # WebSocket 서버 (자세 인식)
+├── statistics_api.py            # REST API 서버 (통계 기능)
+├── integrated_server.py         # 서버 통합 모듈
+├── model_predictor.py           # 머신러닝 예측 모듈
+├── database.py                  # 데이터베이스 관리
+├── config.py                    # 환경 설정 관리
+├── logger_config.py             # 로깅 설정
+├── update_posture_labels.py     # 자세 라벨 업데이트 스크립트
+├── requirements.txt             # Python 의존성 패키지
+├── .env                         # 환경 변수 설정
+├── install_ubuntu.sh            # Ubuntu 자동 설치 스크립트
+├── server_manager.sh            # 서버 관리 스크립트
+├── test_client.py               # WebSocket 테스트 클라이언트
+├── test_web.html                # 웹 기반 WebSocket 테스트
+├── test_statistics_api.html     # 웹 기반 통계 API 테스트
+├── API_SPECIFICATION.md         # REST API 상세 명세서
+├── README.md                    # 프로젝트 문서
+├── model_lr.joblib              # 훈련된 머신러닝 모델
+├── scaler.joblib                # 데이터 정규화 스케일러
+├── posture_data.db             # SQLite 데이터베이스 (자동 생성)
+├── posture_server.log          # 서버 로그 파일 (자동 생성)
+└── ML/                         # 머신러닝 모델 관련 파일들
+    ├── model_lr.joblib
+    ├── scaler.joblib
+    └── (기타 ML 관련 파일들)
+```
+
+## 주요 구성 요소
+
+### 1. 통합 서버 시스템
+- **main.py**: WebSocket(8765)과 REST API(8766) 동시 실행
+- **websocket_server.py**: 실시간 자세 인식 및 데이터 수집
+- **statistics_api.py**: 통계 분석 및 자세 점수 계산
+
+### 2. 자세 점수 시스템 (100점 만점)
+- **바른 자세 점수** (60점): 바른 자세 유지 비율
+- **나쁜 자세 감점** (최대 -30점): 유해 자세별 가중치 적용
+- **세션 안정성** (20점): 자세 변경 빈도의 적절성
+
+### 3. 통계 분석 기능
+- 자세별 시간 통계 및 세션 분석
+- 일일/주간/월간 리포트
+- 자세 개선 피드백 및 등급 시스템
+
+### 4. 데이터 관리
+- SQLite 기반 예측 결과 저장
+- 데이터 초기화 및 백업 기능
+- 자세 라벨 업데이트 지원
 
 ## 주의사항
 

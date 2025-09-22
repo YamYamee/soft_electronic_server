@@ -68,6 +68,14 @@ class Config:
         return self.get_env('SERVER_PORT', 8765, int)
     
     @property
+    def WEBSOCKET_PORT(self) -> int:
+        return self.get_env('WEBSOCKET_PORT', 8765, int)
+    
+    @property
+    def API_PORT(self) -> int:
+        return self.get_env('API_PORT', 8766, int)
+    
+    @property
     def SERVER_PING_INTERVAL(self) -> int:
         return self.get_env('SERVER_PING_INTERVAL', 30, int)
     
@@ -214,6 +222,15 @@ class Config:
         if not (1 <= self.SERVER_PORT <= 65535):
             errors.append(f"SERVER_PORT는 1-65535 범위여야 합니다: {self.SERVER_PORT}")
         
+        if not (1 <= self.WEBSOCKET_PORT <= 65535):
+            errors.append(f"WEBSOCKET_PORT는 1-65535 범위여야 합니다: {self.WEBSOCKET_PORT}")
+        
+        if not (1 <= self.API_PORT <= 65535):
+            errors.append(f"API_PORT는 1-65535 범위여야 합니다: {self.API_PORT}")
+        
+        if self.WEBSOCKET_PORT == self.API_PORT:
+            errors.append(f"WEBSOCKET_PORT와 API_PORT는 달라야 합니다: {self.WEBSOCKET_PORT}")
+        
         # FSR 센서 개수 검사
         if self.FSR_SENSOR_COUNT <= 0:
             errors.append(f"FSR_SENSOR_COUNT는 양수여야 합니다: {self.FSR_SENSOR_COUNT}")
@@ -237,7 +254,8 @@ class Config:
     def print_config(self):
         """현재 설정값 출력 (디버그용)"""
         logger.info("=== 현재 환경 설정 ===")
-        logger.info(f"서버: {self.SERVER_HOST}:{self.SERVER_PORT}")
+        logger.info(f"WebSocket 서버: {self.SERVER_HOST}:{self.WEBSOCKET_PORT}")
+        logger.info(f"REST API 서버: {self.SERVER_HOST}:{self.API_PORT}")
         logger.info(f"데이터베이스: {self.DATABASE_PATH}")
         logger.info(f"모델: {self.MODEL_PATH}")
         logger.info(f"로그 레벨: {self.LOG_LEVEL}")
