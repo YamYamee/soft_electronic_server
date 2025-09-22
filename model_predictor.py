@@ -2,7 +2,7 @@ import numpy as np
 import logging
 from typing import List, Tuple, Dict, Any
 import os
-import joblib
+import random
 from config import config
 
 # 로거 설정
@@ -11,51 +11,19 @@ logger = logging.getLogger(__name__)
 class PosturePredictor:
     def __init__(self, model_path=None):
         self.model_path = model_path or config.MODEL_PATH
-        self.scaler_path = "scaler.joblib"  # 루트 디렉토리로 변경
         self.model = None
-        self.scaler = None
         self.posture_labels = {
-            0: "정자세",
-            1: "오른쪽 다리꼬기",
-            2: "왼쪽 다리꼬기", 
-            3: "등 기대고 엉덩이 앞으로",
-            4: "거북목(폰 보면서 목 숙이기)",
-            5: "오른쪽 팔걸이",
-            6: "왼쪽 팔걸이",
-            7: "목 앞으로 나오는(컴퓨터 할 때)"
+            0: "바른 자세",
+            1: "거북목 자세",
+            2: "목 숙이기", 
+            3: "앞으로 당겨 기대기",
+            4: "오른쪽으로 기대기",
+            5: "왼쪽으로 기대기",
+            6: "오른쪽 다리 꼭기",
+            7: "왼쪽 다리 꼭기"
         }
         self.supports_proba = True
-        self.load_model()
-    
-    def load_model(self):
-        """저장된 머신러닝 모델 및 스케일러 로드"""
-        try:
-            # 실제 머신러닝 모델 로드 시도
-            if os.path.exists(self.model_path):
-                logger.info(f"머신러닝 모델 로드 중: {self.model_path}")
-                self.model = joblib.load(self.model_path)
-                logger.info("✅ 머신러닝 모델 로드 성공")
-                
-                # 스케일러 로드 시도
-                if os.path.exists(self.scaler_path):
-                    logger.info(f"스케일러 로드 중: {self.scaler_path}")
-                    self.scaler = joblib.load(self.scaler_path)
-                    logger.info("✅ 스케일러 로드 성공")
-                else:
-                    logger.warning(f"스케일러 파일이 없습니다: {self.scaler_path}")
-                    self.scaler = None
-                
-                return True
-                
-            else:
-                logger.warning(f"모델 파일이 없습니다: {self.model_path}")
-                raise FileNotFoundError("모델 파일 없음")
-                
-        except Exception as e:
-            logger.error(f"모델 로드 실패: {e}")
-            logger.info("규칙 기반 모델로 대체합니다")
-            self.create_simple_rule_based_model()
-            return False
+        self.create_simple_rule_based_model()
     
     def create_simple_rule_based_model(self):
         """간단한 규칙 기반 모델 생성 (실제 모델 로드가 실패할 경우 사용)"""
@@ -64,19 +32,33 @@ class PosturePredictor:
         # FSR 패턴 기반 분류 규칙
         self.classification_rules = {
             # 각 자세별 FSR 센서 패턴 특징
-            0: {'name': '정자세', 'pattern': 'balanced'},
-            1: {'name': '오른쪽 다리꼬기', 'pattern': 'right_heavy'},
-            2: {'name': '왼쪽 다리꼬기', 'pattern': 'left_heavy'},
-            3: {'name': '등 기대고 엉덩이 앞으로', 'pattern': 'front_heavy'},
-            4: {'name': '거북목', 'pattern': 'forward_lean'},
-            5: {'name': '오른쪽 팔걸이', 'pattern': 'right_arm'},
-            6: {'name': '왼쪽 팔걸이', 'pattern': 'left_arm'},
-            7: {'name': '목 앞으로', 'pattern': 'neck_forward'}
+            0: {'name': '바른 자세', 'pattern': 'balanced'},
+            1: {'name': '거북목 자세', 'pattern': 'neck_forward'},
+            2: {'name': '목 숙이기', 'pattern': 'head_down'},
+            3: {'name': '앞으로 당겨 기대기', 'pattern': 'front_heavy'},
+            4: {'name': '오른쪽으로 기대기', 'pattern': 'right_lean'},
+            5: {'name': '왼쪽으로 기대기', 'pattern': 'left_lean'},
+            6: {'name': '오른쪽 다리 꼭기', 'pattern': 'right_leg_cross'},
+            7: {'name': '왼쪽 다리 꼭기', 'pattern': 'left_leg_cross'}
         }
         
         self.model = "rule_based"
-        self.scaler = None
         logger.info("규칙 기반 모델 생성 완료")
+    
+    def load_model(self):
+        """저장된 머신러닝 모델 로드 (현재는 규칙 기반으로 대체)"""
+        try:
+            if os.path.exists(self.model_path):
+                logger.info(f"모델 파일 발견: {self.model_path}")
+                logger.info("호환성 문제로 인해 규칙 기반 모델을 사용합니다")
+            else:
+                logger.info(f"모델 파일이 없습니다: {self.model_path}")
+            
+            self.create_simple_rule_based_model()
+                
+        except Exception as e:
+            logger.error(f"모델 로드 중 오류: {e}")
+            self.create_simple_rule_based_model()
     
     def preprocess_data(self, fsr_data: List[float], imu_data: Any = None) -> np.ndarray:
         """입력 데이터 전처리"""
@@ -128,39 +110,36 @@ class PosturePredictor:
             front_pressure = np.sum(fsr_data[[0, 1, 5, 6]])  # 앞쪽 센서들
             back_pressure = np.sum(fsr_data[[3, 4, 8, 9]])   # 뒤쪽 센서들
             
-            # 분류 로직
+            # 분류 로직 (새로운 자세 분류에 맞게 조정)
             if left_pressure > right_pressure * 1.5:
                 # 왼쪽으로 치우침
                 if front_pressure > back_pressure:
-                    predicted_posture = 2  # 왼쪽 다리꼬기
+                    predicted_posture = 7  # 왼쪽 다리 꼭기
                 else:
-                    predicted_posture = 6  # 왼쪽 팔걸이
+                    predicted_posture = 5  # 왼쪽으로 기대기
                 confidence = min(0.9, (left_pressure / right_pressure - 1) * 0.5 + 0.6)
                 
             elif right_pressure > left_pressure * 1.5:
                 # 오른쪽으로 치우침
                 if front_pressure > back_pressure:
-                    predicted_posture = 1  # 오른쪽 다리꼬기
+                    predicted_posture = 6  # 오른쪽 다리 꼭기
                 else:
-                    predicted_posture = 5  # 오른쪽 팔걸이
+                    predicted_posture = 4  # 오른쪽으로 기대기
                 confidence = min(0.9, (right_pressure / left_pressure - 1) * 0.5 + 0.6)
-                
-            elif back_pressure > front_pressure * 1.3:
-                # 뒤쪽으로 치우침 (등 기대기)
-                predicted_posture = 3
-                confidence = min(0.9, (back_pressure / front_pressure - 1) * 0.5 + 0.6)
                 
             elif front_pressure > back_pressure * 1.3:
                 # 앞쪽으로 치우침
                 if np.max(fsr_data[:3]) > np.mean(fsr_data) * 1.5:
-                    predicted_posture = 4  # 거북목
+                    predicted_posture = 2  # 목 숙이기
+                elif np.mean(fsr_data[:5]) > np.mean(fsr_data[5:]) * 1.2:
+                    predicted_posture = 1  # 거북목 자세
                 else:
-                    predicted_posture = 7  # 목 앞으로
+                    predicted_posture = 3  # 앞으로 당겨 기대기
                 confidence = min(0.9, (front_pressure / back_pressure - 1) * 0.5 + 0.6)
                 
             else:
                 # 균형잡힌 자세
-                predicted_posture = 0  # 정자세
+                predicted_posture = 0  # 바른 자세
                 balance_score = 1 - abs(left_pressure - right_pressure) / total_pressure
                 confidence = min(0.95, balance_score + 0.3)
             
@@ -179,35 +158,8 @@ class PosturePredictor:
             # 데이터 전처리
             features = self.preprocess_data(fsr_data, imu_data)
             
-            # 실제 머신러닝 모델이 있는 경우
-            if self.model != "rule_based" and self.model is not None:
-                # 특성 데이터를 2D 배열로 변환 (모델 입력 형식)
-                features_2d = features.reshape(1, -1)
-                
-                # 스케일러가 있는 경우 정규화 수행
-                if self.scaler is not None:
-                    features_normalized = self.scaler.transform(features_2d)
-                    logger.debug("데이터 정규화 완료")
-                else:
-                    features_normalized = features_2d
-                    logger.debug("스케일러 없음 - 원본 데이터 사용")
-                
-                # 모델 예측 수행
-                predicted_posture = int(self.model.predict(features_normalized)[0])
-                
-                # 확률 예측 지원하는 경우 신뢰도 계산
-                if hasattr(self.model, 'predict_proba'):
-                    probabilities = self.model.predict_proba(features_normalized)[0]
-                    confidence = float(np.max(probabilities))
-                else:
-                    confidence = 0.8  # 기본 신뢰도
-                
-                logger.info(f"머신러닝 모델 예측 완료 - 자세: {predicted_posture} ({self.posture_labels[predicted_posture]}), 신뢰도: {confidence:.3f}")
-                
-            else:
-                # 규칙 기반 분류 수행
-                predicted_posture, confidence = self.analyze_fsr_pattern(features)
-                logger.info(f"규칙 기반 예측 완료 - 자세: {predicted_posture} ({self.posture_labels[predicted_posture]}), 신뢰도: {confidence:.3f}")
+            # 규칙 기반 분류 수행
+            predicted_posture, confidence = self.analyze_fsr_pattern(features)
             
             # 유효한 자세 범위 확인
             if predicted_posture not in self.posture_labels:
@@ -215,12 +167,13 @@ class PosturePredictor:
                 predicted_posture = 0  # 기본값으로 정자세 설정
                 confidence = 0.5  # 중간 신뢰도 설정
             
+            logger.info(f"자세 예측 완료 - 자세: {predicted_posture} ({self.posture_labels[predicted_posture]}), 신뢰도: {confidence:.3f}")
+            
             return predicted_posture, confidence
             
         except Exception as e:
             logger.error(f"자세 예측 오류: {e}")
-            # 오류 발생 시 기본 예측
-            import random
+            # 오류 발생 시 랜덤 예측 (데모 목적)
             predicted_posture = random.randint(0, 7)
             confidence = random.uniform(0.4, 0.8)
             logger.info(f"오류로 인한 랜덤 예측 - 자세: {predicted_posture}, 신뢰도: {confidence:.3f}")
