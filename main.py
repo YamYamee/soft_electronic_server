@@ -11,6 +11,7 @@ import logging
 import uvicorn
 import psutil
 from websocket_server import start_websocket_server
+from starlette.middleware.base import BaseHTTPMiddleware
 from statistics_api import app as fastapi_app
 from logger_config import setup_logging, log_server_start, log_server_shutdown, log_system_health
 from config import config
