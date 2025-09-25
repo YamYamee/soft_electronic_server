@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.base import BaseHTTPMiddleware
 import logging
 import time
 from config import config
@@ -26,35 +25,25 @@ app = FastAPI(
 )
 
 # API 요청 로깅 미들웨어
-class LoggingMiddleware:
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            start_time = time.time()
-            
-            # 요청 정보 로깅
-            method = scope["method"]
-            path = scope["path"]
-            client_ip = scope.get("client", ["unknown"])[0] if scope.get("client") else "unknown"
-            
-            from logger_config import log_api_request
-            log_api_request(path, method, client_ip)
-            
-            # 응답 처리
-            async def send_wrapper(message):
-                if message["type"] == "http.response.start":
-                    process_time = time.time() - start_time
-                    logger.info(f"API 응답: {method} {path} - {message.get('status', 'unknown')} ({process_time*1000:.1f}ms)")
-                await send(message)
-            
-            await self.app(scope, receive, send_wrapper)
-        else:
-            await self.app(scope, receive, send)
-
-# 미들웨어 등록
-app.add_middleware(LoggingMiddleware)
+@app.middleware("http")
+async def logging_middleware(request: Request, call_next):
+    start_time = time.time()
+    
+    # 요청 정보 로깅
+    method = request.method
+    path = request.url.path
+    client_ip = request.client.host if request.client else "unknown"
+    
+    from logger_config import log_api_request
+    log_api_request(path, method, client_ip)
+    
+    # 응답 처리
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    logger.info(f"API 응답: {method} {path} - {response.status_code} ({process_time*1000:.1f}ms)")
+    
+    return response
 
 # CORS 설정
 app.add_middleware(
