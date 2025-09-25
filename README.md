@@ -126,7 +126,7 @@ bash server_manager.sh status
 bash server_manager.sh logs
 ```
 
-#### Windows 환경:
+#### Windows 환경!:
 
 ```bash
 # 통합 서버 실행 (WebSocket + REST API)
