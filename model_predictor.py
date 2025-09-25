@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 class EnsemblePosturePredictor:
     def __init__(self, model_path=None):
         self.model_path = model_path or config.MODEL_PATH
-        self.models = {}
-        self.scaler = None
+        self.models = {}  # 1차 모델들 (FSR 기반)
+        self.models_stage2 = {}  # 2차 모델들 (IMU 기반)
+        self.scaler = None  # 1차 스케일러 (FSR용)
+        self.scaler_stage2 = None  # 2차 스케일러 (IMU용)
         self.posture_labels = {
             0: "바른 자세",
             1: "거북목 자세",
@@ -30,6 +32,7 @@ class EnsemblePosturePredictor:
         # Database manager for logging
         self.db_manager = PostureDatabase()
         self.load_ensemble_models()
+        self.load_stage2_models()  # 2차 모델들 로드
         
         # 모델별 가중치 (성능에 따라 조정 가능)
         self.model_weights = {
@@ -41,6 +44,52 @@ class EnsemblePosturePredictor:
         
         # 예측 로그를 위한 DB 테이블 생성
         self.create_prediction_log_table()
+
+    def load_stage2_models(self):
+        """2차 분류용 IMU 기반 모델들 로드"""
+        from logger_config import log_model_loading, log_model_loaded, log_ensemble_summary
+        
+        ml_dir = os.path.join(os.path.dirname(__file__), 'ML')
+        stage2_model_files = {
+            'lr2': 'model_lr2.joblib',
+            'rf2': 'model_rf2.joblib', 
+            'dt2': 'model_dt2.joblib',
+            'kn2': 'model_kn2.joblib'
+        }
+        
+        scaler2_path = os.path.join(ml_dir, 'scaler2.joblib')
+        
+        logger.info("=== 2차 분류 모델 로딩 시작 ===")
+        
+        # 2차 스케일러 로드
+        try:
+            if os.path.exists(scaler2_path):
+                self.scaler_stage2 = joblib.load(scaler2_path)
+                logger.info("✅ 2차 스케일러 로드 성공")
+            else:
+                logger.warning("⚠️ 2차 스케일러 파일을 찾을 수 없습니다")
+        except Exception as e:
+            logger.error(f"❌ 2차 스케일러 로드 실패: {e}")
+
+        # 2차 모델들 로드
+        loaded_stage2_models = []
+        for model_name, filename in stage2_model_files.items():
+            model_path = os.path.join(ml_dir, filename)
+            try:
+                if os.path.exists(model_path):
+                    model = joblib.load(model_path)
+                    self.models_stage2[model_name] = model
+                    loaded_stage2_models.append(model_name.upper())
+                    logger.info(f"✅ {model_name.upper()} 2차 모델 로드 성공")
+                else:
+                    logger.warning(f"⚠️ {model_name.upper()} 2차 모델 파일이 없습니다: {filename}")
+            except Exception as e:
+                logger.error(f"❌ {model_name.upper()} 2차 모델 로드 실패: {e}")
+
+        if self.models_stage2:
+            logger.info(f"🎯 2차 분류 모델 로드 완료: {loaded_stage2_models}")
+        else:
+            logger.warning("⚠️ 2차 분류 모델이 로드되지 않았습니다. IMU 기반 세부 분류가 불가능합니다.")
     
     def create_prediction_log_table(self):
         """예측 로그를 저장할 테이블 생성"""
@@ -195,6 +244,38 @@ class EnsemblePosturePredictor:
             logger.error(f"데이터 전처리 오류: {e}")
             raise
     
+    def preprocess_imu_data(self, imu_data) -> np.ndarray:
+        """2차 분류용 IMU 데이터 전처리"""
+        try:
+            if not imu_data:
+                logger.warning("IMU 데이터가 없습니다")
+                return np.zeros(6)  # 기본값: accel_x,y,z + gyro_x,y,z
+            
+            # IMU 데이터에서 특성 추출 (폰 형식: accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z)
+            if isinstance(imu_data, dict):
+                accel_x = float(imu_data.get('accel_x', 0.0))
+                accel_y = float(imu_data.get('accel_y', 0.0))
+                accel_z = float(imu_data.get('accel_z', 0.0))
+                gyro_x = float(imu_data.get('gyro_x', 0.0))
+                gyro_y = float(imu_data.get('gyro_y', 0.0))
+                gyro_z = float(imu_data.get('gyro_z', 0.0))
+                
+                features = np.array([accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z], dtype=np.float32)
+                logger.debug(f"IMU 특성 추출: accel({accel_x:.2f}, {accel_y:.2f}, {accel_z:.2f}), gyro({gyro_x:.2f}, {gyro_y:.2f}, {gyro_z:.2f})")
+                
+            elif isinstance(imu_data, (list, tuple)) and len(imu_data) >= 6:
+                features = np.array(imu_data[:6], dtype=np.float32)
+                logger.debug(f"IMU 배열 데이터 사용: {features}")
+                
+            else:
+                logger.warning(f"예상하지 못한 IMU 데이터 형식: {type(imu_data)}")
+                return np.zeros(6)
+            
+            return features
+            
+        except Exception as e:
+            logger.error(f"IMU 데이터 전처리 오류: {e}")
+            return np.zeros(6)
 
     def analyze_fsr_pattern(self, fsr_data: np.ndarray) -> Tuple[int, float]:
         """FSR 데이터 패턴 분석을 통한 자세 분류"""
@@ -267,17 +348,46 @@ class EnsemblePosturePredictor:
             # 데이터 전처리
             features = self.preprocess_data(fsr_data)
             
-            # ML 모델이 있으면 앙상블 예측, 없으면 규칙 기반
+            # 1차 분류: FSR 기반 예측
             if len(self.models) > 1 and "rule_based" not in self.models:
                 predicted_posture, confidence, prediction_details = self.ensemble_predict(features)
-                method = "ensemble"
+                method = "ensemble_stage1"
             else:
                 # 규칙 기반 분류 수행
                 predicted_posture, confidence = self.analyze_fsr_pattern(features)
                 prediction_details = {
                     "rule_based": {"prediction": predicted_posture, "confidence": confidence}
                 }
-                method = "rule_based"
+                method = "rule_based_stage1"
+            
+            logger.info(f"🥇 1차 분류 결과: 자세 {predicted_posture} (신뢰도: {confidence:.3f})")
+            
+            # 2차 분류: 1차에서 자세 0(정자세) 또는 1번 자세인 경우 IMU 기반 세부 분류
+            if predicted_posture in [0, 1] and imu_data and self.models_stage2:
+                logger.info(f"🎯 자세 {predicted_posture} 감지 - 2차 IMU 분류 시작")
+                
+                # IMU 데이터 전처리
+                imu_features = self.preprocess_imu_data(imu_data)
+                
+                # 2차 분류 수행
+                stage2_prediction, stage2_confidence, stage2_details = self.stage2_predict(imu_features)
+                
+                # 2차 분류 결과가 유의미한 경우 (자세 0이 아닌 경우) 결과 업데이트
+                if stage2_prediction != 0 and stage2_confidence > 0.6:
+                    logger.info(f"🎯 2차 분류로 자세 변경: {predicted_posture} -> {stage2_prediction}")
+                    predicted_posture = stage2_prediction
+                    confidence = stage2_confidence
+                    prediction_details.update(stage2_details)
+                    method = method + "_+_stage2"
+                else:
+                    logger.info(f"🎯 2차 분류 결과 무시: 자세 {stage2_prediction} (신뢰도: {stage2_confidence:.3f})")
+                    prediction_details.update(stage2_details)
+            elif predicted_posture in [0, 1] and not imu_data:
+                logger.debug(f"자세 {predicted_posture}이지만 IMU 데이터가 없어서 2차 분류를 수행하지 않습니다")
+            elif predicted_posture in [0, 1] and not self.models_stage2:
+                logger.debug(f"자세 {predicted_posture}이지만 2차 모델이 없어서 2차 분류를 수행하지 않습니다")
+            else:
+                logger.debug(f"1차 분류 결과가 자세 {predicted_posture}이므로 2차 분류를 수행하지 않습니다")
             
             # 유효한 자세 범위 확인
             if predicted_posture not in self.posture_labels:
@@ -415,6 +525,89 @@ class EnsemblePosturePredictor:
         }
         
         logger.debug(f"앙상블 예측 완료 - 최종: {final_prediction}, 신뢰도: {final_confidence:.3f}")
+        
+        return final_prediction, final_confidence, prediction_details
+
+    def stage2_predict(self, imu_features: np.ndarray) -> Tuple[int, float, Dict]:
+        """2차 분류: IMU 데이터 기반 앙상블 예측"""
+        if not self.models_stage2:
+            logger.warning("2차 모델이 로드되지 않았습니다")
+            return 0, 0.5, {"error": "no_stage2_models"}
+        
+        # IMU 데이터 정규화
+        if self.scaler_stage2 is not None:
+            imu_scaled = self.scaler_stage2.transform(imu_features.reshape(1, -1))
+        else:
+            imu_scaled = imu_features.reshape(1, -1)
+            logger.warning("2차 스케일러가 없어서 정규화를 수행하지 않습니다")
+        
+        predictions = {}
+        confidences = {}
+        voting_scores = np.zeros(len(self.posture_labels))
+        
+        logger.debug(f"2차 예측 시작 - IMU 특성: {imu_features}")
+        
+        # 각 2차 모델별 예측 수행
+        for model_name, model in self.models_stage2.items():
+            try:
+                # 예측 수행
+                pred = model.predict(imu_scaled)[0]
+                predictions[model_name] = pred
+                
+                logger.debug(f"{model_name.upper()} 2차 예측: {pred}")
+                
+                # 신뢰도 계산
+                if hasattr(model, 'predict_proba'):
+                    proba = model.predict_proba(imu_scaled)[0]
+                    confidence = np.max(proba)
+                    confidences[model_name] = confidence
+                    
+                    # 가중 투표 (확률 기반)
+                    weight = self.model_weights.get(model_name, 1.0)
+                    voting_scores += proba * weight
+                    logger.debug(f"{model_name.upper()} 2차 확률 투표 - 확률: {proba}, 가중치: {weight}")
+                else:
+                    # 단순 투표
+                    confidence = 0.7
+                    confidences[model_name] = confidence
+                    weight = self.model_weights.get(model_name, 1.0)
+                    if pred < len(voting_scores):
+                        voting_scores[pred] += weight
+                        logger.debug(f"{model_name.upper()} 2차 단순 투표 - 자세 {pred}에 가중치 {weight} 추가")
+                
+            except Exception as e:
+                logger.error(f"{model_name.upper()} 2차 모델 예측 오류: {e}")
+                continue
+        
+        if len(predictions) == 0:
+            logger.warning("모든 2차 모델 예측 실패")
+            return 0, 0.5, {"error": "all_stage2_models_failed"}
+        
+        # 2차 분류 최종 예측 결정
+        logger.debug(f"2차 투표 점수: {voting_scores}")
+        
+        if np.sum(voting_scores) > 0:
+            final_prediction = np.argmax(voting_scores)
+            final_confidence = voting_scores[final_prediction] / np.sum(voting_scores)
+        else:
+            # 다수결로 선택
+            from collections import Counter
+            prediction_counts = Counter(predictions.values())
+            final_prediction = prediction_counts.most_common(1)[0][0]
+            final_confidence = 0.6
+        
+        # 신뢰도 범위 조정
+        final_confidence = max(0.3, min(0.95, final_confidence))
+        
+        prediction_details = {
+            'stage2_individual_predictions': predictions,
+            'stage2_individual_confidences': confidences,
+            'stage2_voting_scores': voting_scores.tolist(),
+            'stage2_final_prediction': final_prediction,
+            'stage2_final_confidence': final_confidence
+        }
+        
+        logger.info(f"🎯 2차 분류 완료: 자세 {final_prediction} (신뢰도: {final_confidence:.3f})")
         
         return final_prediction, final_confidence, prediction_details
     
