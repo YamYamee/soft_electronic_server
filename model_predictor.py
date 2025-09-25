@@ -160,7 +160,7 @@ class EnsemblePosturePredictor:
         self.models = {"rule_based": "rule_based"}
         logger.info("규칙 기반 모델 생성 완료")
     
-    def preprocess_data(self, fsr_data: List[float], imu_data: Any = None) -> np.ndarray:
+    def preprocess_data(self, fsr_data: np.ndarray) -> np.ndarray:
         """입력 데이터 전처리"""
         from logger_config import log_data_preprocessing
         
@@ -195,72 +195,6 @@ class EnsemblePosturePredictor:
             logger.error(f"데이터 전처리 오류: {e}")
             raise
     
-    def apply_imu_correction(self, ml_prediction: int, ml_confidence: float, imu_data) -> Tuple[int, float]:
-        """IMU 단일 값을 활용한 자세 예측 보정"""
-        if imu_data is None:
-            return ml_prediction, ml_confidence
-        
-        try:
-            # IMU 데이터를 단일 값으로 처리
-            imu_value = 0.0
-            if isinstance(imu_data, (int, float)):
-                imu_value = float(imu_data)
-            elif isinstance(imu_data, dict):
-                # 딕셔너리인 경우 첫 번째 값 사용
-                imu_value = float(next(iter(imu_data.values()), 0.0))
-            else:
-                logger.warning(f"예상하지 못한 IMU 데이터 형식: {type(imu_data)}")
-                return ml_prediction, ml_confidence
-            
-            # IMU 값 기반 임계치 설정
-            LOW_MOVEMENT = 0.5   # 낮은 움직임 임계치
-            HIGH_MOVEMENT = 2.0  # 높은 움직임 임계치
-            EXTREME_MOVEMENT = 4.0  # 극심한 움직임 임계치
-            
-            corrected_prediction = ml_prediction
-            corrected_confidence = ml_confidence
-            
-            # IMU 값에 따른 자세 보정 로직
-            if abs(imu_value) > EXTREME_MOVEMENT:
-                # 극심한 움직임 - 거북목이나 심한 구부정한 자세로 보정
-                if ml_prediction in [0, 1]:  # 정자세나 약간 구부정한 자세
-                    corrected_prediction = 2  # 거북목 자세
-                    corrected_confidence = min(0.9, ml_confidence + 0.3)
-                    logger.info(f"IMU 극심한 움직임 감지 -> 거북목 보정: {imu_value:.2f}")
-                elif ml_prediction == 2:  # 이미 거북목으로 예측된 경우
-                    corrected_confidence = min(0.95, ml_confidence + 0.2)
-                    logger.debug(f"IMU로 거북목 신뢰도 증가: {imu_value:.2f}")
-                    
-            elif abs(imu_value) > HIGH_MOVEMENT:
-                # 높은 움직임 - 좌우 기대기나 구부정한 자세로 보정
-                if ml_prediction == 0:  # 정자세인 경우
-                    if imu_value > 0:
-                        corrected_prediction = 5  # 우측 기대기
-                    else:
-                        corrected_prediction = 4  # 좌측 기대기
-                    corrected_confidence = min(0.85, ml_confidence + 0.2)
-                    logger.info(f"IMU 높은 움직임 감지 -> 좌우 기대기 보정: {imu_value:.2f}")
-                elif ml_prediction in [4, 5]:  # 이미 좌우 기대기로 예측된 경우
-                    corrected_confidence = min(0.9, ml_confidence + 0.15)
-                    logger.debug(f"IMU로 좌우 기대기 신뢰도 증가: {imu_value:.2f}")
-                    
-            elif abs(imu_value) > LOW_MOVEMENT:
-                # 낮은 움직임 - 기존 예측의 신뢰도만 조정
-                if ml_confidence < 0.7:
-                    corrected_confidence = min(0.8, ml_confidence + 0.1)
-                    logger.debug(f"IMU 낮은 움직임으로 신뢰도 소폭 증가: {imu_value:.2f}")
-            else:
-                # 움직임이 거의 없음 - 정자세 가능성 증가
-                if ml_prediction in [1, 2, 3] and ml_confidence < 0.6:
-                    corrected_prediction = 0  # 정자세로 보정
-                    corrected_confidence = 0.7
-                    logger.info(f"IMU 정적 상태 감지 -> 정자세 보정: {imu_value:.2f}")
-            
-            return corrected_prediction, corrected_confidence
-            
-        except Exception as e:
-            logger.error(f"IMU 보정 처리 오류: {e}")
-            return ml_prediction, ml_confidence
 
     def analyze_fsr_pattern(self, fsr_data: np.ndarray) -> Tuple[int, float]:
         """FSR 데이터 패턴 분석을 통한 자세 분류"""
@@ -331,7 +265,7 @@ class EnsemblePosturePredictor:
         
         try:
             # 데이터 전처리
-            features = self.preprocess_data(fsr_data, imu_data)
+            features = self.preprocess_data(fsr_data)
             
             # ML 모델이 있으면 앙상블 예측, 없으면 규칙 기반
             if len(self.models) > 1 and "rule_based" not in self.models:
@@ -344,15 +278,6 @@ class EnsemblePosturePredictor:
                     "rule_based": {"prediction": predicted_posture, "confidence": confidence}
                 }
                 method = "rule_based"
-            
-            # IMU 기반 자세 보정 적용
-            original_prediction = predicted_posture
-            original_confidence = confidence
-            predicted_posture, confidence = self.apply_imu_correction(predicted_posture, confidence, imu_data)
-            
-            # IMU 보정이 적용된 경우 로그 출력
-            if predicted_posture != original_prediction or abs(confidence - original_confidence) > 0.05:
-                logger.info(f"IMU 보정 적용: {original_prediction}({original_confidence:.2f}) -> {predicted_posture}({confidence:.2f})")
             
             # 유효한 자세 범위 확인
             if predicted_posture not in self.posture_labels:

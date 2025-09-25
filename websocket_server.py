@@ -83,7 +83,7 @@ class PostureWebSocketServer:
             # 데이터 추출
             message_id = data['id']
             device_id = data['device_id']
-            imu_data = data.get('IMU')
+            imu_data = data.get('IMU')  # IMU 데이터는 받되 예측에는 사용 안함
             fsr_data = data['FSR']
             
             # FSR 데이터 유효성 검사
@@ -92,7 +92,7 @@ class PostureWebSocketServer:
             
             log_client_data(client_id, "sensor", len(json.dumps(data)))
             
-            # 자세 예측 수행 (클라이언트 정보 포함)
+            # 자세 예측 수행 (클라이언트 정보 포함) - IMU는 예측에 사용하지 않음
             predicted_posture, confidence = predictor.predict_posture(
                 fsr_data, imu_data, client_id=client_id, device_id=device_id
             )
