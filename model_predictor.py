@@ -6,7 +6,7 @@ import random
 import joblib
 from datetime import datetime
 from config import config
-from database import DatabaseManager
+from database import PostureDatabase
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -27,7 +27,8 @@ class EnsemblePosturePredictor:
             7: "왼쪽 다리 꼬기"
         }
         self.supports_proba = True
-        self.db_manager = DatabaseManager()
+        # Database manager for logging
+        self.db_manager = PostureDatabase()
         self.load_ensemble_models()
         
         # 모델별 가중치 (성능에 따라 조정 가능)
