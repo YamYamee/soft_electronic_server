@@ -12,6 +12,10 @@ class PostureDatabase:
         self.db_path = db_path or config.DATABASE_PATH
         self.init_database()
     
+    def get_connection(self):
+        """데이터베이스 연결 반환"""
+        return sqlite3.connect(self.db_path)
+    
     def init_database(self):
         """데이터베이스와 테이블 초기화"""
         try:
