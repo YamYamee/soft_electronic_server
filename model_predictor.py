@@ -327,7 +327,9 @@ class EnsemblePosturePredictor:
         
         predictions = {}
         confidences = {}
-        voting_scores = np.zeros(8)  # 8개 클래스에 대한 투표
+        voting_scores = np.zeros(len(self.posture_labels))  # 실제 자세 개수에 맞춤
+        
+        logger.debug(f"앙상블 예측 시작 - 자세 개수: {len(self.posture_labels)}")
         
         # 각 모델별 예측 수행
         for model_name, model in self.models.items():
@@ -339,6 +341,8 @@ class EnsemblePosturePredictor:
                 pred = model.predict(features_scaled)[0]
                 predictions[model_name] = pred
                 
+                logger.debug(f"{model_name.upper()} 원시 예측: {pred}")
+                
                 # 신뢰도 계산 (확률 예측이 가능한 경우)
                 if hasattr(model, 'predict_proba'):
                     proba = model.predict_proba(features_scaled)[0]
@@ -348,12 +352,17 @@ class EnsemblePosturePredictor:
                     # 가중 투표 (확률 기반)
                     weight = self.model_weights.get(model_name, 1.0)
                     voting_scores += proba * weight
+                    logger.debug(f"{model_name.upper()} 확률 기반 투표 - 확률: {proba}, 가중치: {weight}")
                 else:
                     # 단순 투표
                     confidence = 0.7  # 기본 신뢰도
                     confidences[model_name] = confidence
                     weight = self.model_weights.get(model_name, 1.0)
-                    voting_scores[pred] += weight
+                    if pred < len(voting_scores):  # 인덱스 범위 확인
+                        voting_scores[pred] += weight
+                        logger.debug(f"{model_name.upper()} 단순 투표 - 자세 {pred}에 가중치 {weight} 추가")
+                    else:
+                        logger.warning(f"{model_name.upper()} 예측 자세 {pred}가 범위를 벗어남 (최대: {len(voting_scores)-1})")
                     
                 logger.debug(f"{model_name.upper()} 예측: {pred}, 신뢰도: {confidence:.3f}")
                 
@@ -367,8 +376,24 @@ class EnsemblePosturePredictor:
             pred, conf = self.analyze_fsr_pattern(features)
             return pred, conf, {"rule_based_fallback": {"prediction": pred, "confidence": conf}}
         
+        # 투표 점수 디버깅
+        logger.debug(f"최종 투표 점수: {voting_scores}")
+        logger.debug(f"투표 점수 합계: {np.sum(voting_scores)}")
+        
         # 최종 예측 결정 (가장 높은 점수)
-        final_prediction = np.argmax(voting_scores)
+        if np.sum(voting_scores) > 0:
+            final_prediction = np.argmax(voting_scores)
+            logger.debug(f"투표 기반 최종 예측: {final_prediction} (점수: {voting_scores[final_prediction]})")
+        else:
+            # 투표 점수가 모두 0인 경우 - 가장 많이 예측된 자세 선택
+            from collections import Counter
+            if predictions:
+                prediction_counts = Counter(predictions.values())
+                final_prediction = prediction_counts.most_common(1)[0][0]
+                logger.warning(f"투표 점수가 0이어서 다수결로 선택: {final_prediction}")
+            else:
+                final_prediction = 0
+                logger.warning("예측 결과가 없어서 기본 자세 0 선택")
         
         # 앙상블 신뢰도 계산 (정규화된 최대 투표 점수)
         if np.sum(voting_scores) > 0:
@@ -378,6 +403,8 @@ class EnsemblePosturePredictor:
         
         # 신뢰도 범위 조정
         final_confidence = max(0.3, min(0.95, final_confidence))
+        
+        logger.debug(f"최종 결정: 자세 {final_prediction}, 신뢰도 {final_confidence:.3f}")
         
         prediction_details = {
             'individual_predictions': predictions,
