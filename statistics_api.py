@@ -698,6 +698,97 @@ async def get_posture_labels():
         "total_postures": len(POSTURE_LABELS)
     }
 
+@app.get("/statistics/prediction", tags=["Statistics"])
+async def get_prediction_statistics(
+    hours: int = Query(24, description="통계 조회 기간 (시간)", ge=1, le=168)
+):
+    """
+    예측 모델 성능 통계
+    
+    - **hours**: 통계 조회 기간 (기본값: 24시간, 최대: 1주일)
+    
+    예측 방법별 통계, 모델별 성능, 처리 시간 등을 제공합니다.
+    """
+    try:
+        from model_predictor import predictor
+        
+        stats = predictor.get_prediction_statistics(hours)
+        
+        return {
+            "period_hours": hours,
+            "statistics": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"예측 통계 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/statistics/prediction/logs", tags=["Statistics"])
+async def get_recent_prediction_logs(
+    limit: int = Query(100, description="조회할 로그 수", ge=1, le=1000),
+    hours: int = Query(24, description="조회 기간 (시간)", ge=1, le=168)
+):
+    """
+    최근 예측 로그 조회
+    
+    - **limit**: 조회할 로그 수 (기본값: 100, 최대: 1000)
+    - **hours**: 조회 기간 (기본값: 24시간)
+    
+    개별 예측 결과의 상세 로그를 제공합니다.
+    """
+    try:
+        with stats_db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT 
+                    timestamp, client_id, device_id,
+                    ensemble_prediction, ensemble_confidence,
+                    prediction_method, processing_time_ms,
+                    lr_prediction, lr_confidence,
+                    rf_prediction, rf_confidence,
+                    dt_prediction, dt_confidence,
+                    kn_prediction, kn_confidence,
+                    voting_scores, models_used
+                FROM prediction_logs 
+                WHERE timestamp >= datetime('now', '-{} hours')
+                ORDER BY timestamp DESC 
+                LIMIT ?
+            '''.format(hours), (limit,))
+            
+            logs = []
+            for row in cursor.fetchall():
+                import json
+                log_entry = {
+                    'timestamp': row[0],
+                    'client_id': row[1],
+                    'device_id': row[2],
+                    'prediction': row[3],
+                    'confidence': row[4],
+                    'method': row[5],
+                    'processing_time_ms': row[6],
+                    'individual_models': {
+                        'lr': {'prediction': row[7], 'confidence': row[8]},
+                        'rf': {'prediction': row[9], 'confidence': row[10]},
+                        'dt': {'prediction': row[11], 'confidence': row[12]},
+                        'kn': {'prediction': row[13], 'confidence': row[14]}
+                    },
+                    'voting_scores': json.loads(row[15]) if row[15] else None,
+                    'models_used': json.loads(row[16]) if row[16] else []
+                }
+                logs.append(log_entry)
+            
+            return {
+                "logs": logs,
+                "total_count": len(logs),
+                "period_hours": hours,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"예측 로그 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

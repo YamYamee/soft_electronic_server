@@ -152,18 +152,39 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin-top: 20px;
+            margin-top: 15px;
+        }
+
+        .stats-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
         }
 
         .stat-card {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
             text-align: center;
-            border: 2px solid #e0e0e0;
+            flex: 1;
+            min-width: 150px;
         }
 
-        .stat-value {
+        .stat-detail {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        #modelStats h4 {
+            color: #333;
+            margin: 20px 0 10px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }        .stat-value {
             font-size: 2em;
             font-weight: bold;
             color: #74b9ff;
@@ -255,6 +276,29 @@
                     
                     <div class="stats-grid" id="scoreStats" style="margin-top: 20px;">
                         <!-- 점수 상세 정보가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 예측 모델 통계 패널 -->
+                <div class="panel">
+                    <h3>🤖 모델 성능 통계</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-info" onclick="getPredictionStats()">예측 통계</button>
+                        <button class="btn btn-primary" onclick="getPredictionLogs()">예측 로그</button>
+                        <div style="margin-top: 10px;">
+                            <label>조회 기간:</label>
+                            <select id="predictionHours" style="margin-left: 5px; padding: 5px;">
+                                <option value="1">1시간</option>
+                                <option value="6">6시간</option>
+                                <option value="24" selected>24시간</option>
+                                <option value="72">3일</option>
+                                <option value="168">1주일</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid" id="modelStats" style="margin-bottom: 20px;">
+                        <!-- 모델 통계가 여기에 표시됩니다 -->
                     </div>
                 </div>
 
@@ -392,6 +436,78 @@
                     <div class="stat-label">주의 자세</div>
                 </div>
             `;
+        }
+
+        async function getPredictionStats() {
+            const hours = document.getElementById('predictionHours').value;
+            const data = await makeApiCall(`/statistics/prediction?hours=${hours}`);
+            if (data) {
+                updateModelStatsDisplay(data);
+            }
+        }
+
+        async function getPredictionLogs() {
+            const hours = document.getElementById('predictionHours').value;
+            await makeApiCall(`/statistics/prediction/logs?hours=${hours}&limit=50`);
+        }
+
+        function updateModelStatsDisplay(data) {
+            const container = document.getElementById('modelStats');
+            const stats = data.statistics;
+            
+            let html = `<h4>📊 예측 통계 (최근 ${data.period_hours}시간)</h4>`;
+            
+            // 예측 방법별 통계
+            if (Object.keys(stats).length > 0) {
+                html += '<div class="stats-row">';
+                
+                Object.entries(stats).forEach(([method, methodStats]) => {
+                    if (method === 'model_agreement') return;
+                    
+                    html += `
+                        <div class="stat-card">
+                            <div class="stat-label">${method === 'ensemble' ? '🤖 앙상블' : '📏 규칙기반'}</div>
+                            <div class="stat-value">${methodStats.predictions_count}회</div>
+                            <div class="stat-detail">
+                                평균 신뢰도: ${(methodStats.average_confidence * 100).toFixed(1)}%<br>
+                                처리시간: ${methodStats.average_processing_time_ms.toFixed(1)}ms
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                
+                // 모델별 일치도 (앙상블이 있는 경우)
+                if (stats.model_agreement) {
+                    const agreement = stats.model_agreement;
+                    html += `
+                        <h4>🎯 모델별 일치도</h4>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-label">LR (로지스틱)</div>
+                                <div class="stat-value">${agreement.lr_agreement_pct}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">RF (랜덤포레스트)</div>
+                                <div class="stat-value">${agreement.rf_agreement_pct}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">DT (의사결정트리)</div>
+                                <div class="stat-value">${agreement.dt_agreement_pct}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">KN (KNN)</div>
+                                <div class="stat-value">${agreement.kn_agreement_pct}%</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                html += '<p>📝 아직 예측 데이터가 없습니다.</p>';
+            }
+            
+            container.innerHTML = html;
         }
 
         async function getHealthCheck() {

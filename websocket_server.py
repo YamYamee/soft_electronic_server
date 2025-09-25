@@ -85,8 +85,10 @@ class PostureWebSocketServer:
             
             log_client_data(client_id, "sensor", len(json.dumps(data)))
             
-            # 자세 예측 수행
-            predicted_posture, confidence = predictor.predict_posture(fsr_data, imu_data)
+            # 자세 예측 수행 (클라이언트 정보 포함)
+            predicted_posture, confidence = predictor.predict_posture(
+                fsr_data, imu_data, client_id=client_id, device_id=device_id
+            )
             
             # 처리 시간 계산
             processing_time_ms = (time.time() - start_time) * 1000
