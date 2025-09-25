@@ -256,18 +256,18 @@ class StatisticsDatabase:
             posture_stats[posture_id]['confidences'].append(session['avg_confidence'])
             posture_stats[posture_id]['last_detected'] = session['end_time']
         
-        # PostureTimeStats 객체로 변환
+        # PostureTimeStats 객체로 변환 (데이터 타입 명시적 변환)
         result = []
         for stats in posture_stats.values():
             result.append(PostureTimeStats(
-                posture_id=stats['posture_id'],
-                posture_name=stats['posture_name'],
-                total_duration_minutes=round(stats['total_duration'], 2),
-                session_count=stats['session_count'],
-                average_session_duration=round(stats['total_duration'] / stats['session_count'], 2),
-                percentage=round((stats['total_duration'] / total_time * 100), 2) if total_time > 0 else 0,
-                first_detected=stats['first_detected'],
-                last_detected=stats['last_detected']
+                posture_id=int(stats['posture_id']),  # 명시적으로 int 변환
+                posture_name=str(stats['posture_name']),
+                total_duration_minutes=round(float(stats['total_duration']), 2),
+                session_count=int(stats['session_count']),
+                average_session_duration=round(float(stats['total_duration']) / int(stats['session_count']), 2),
+                percentage=round((float(stats['total_duration']) / total_time * 100), 2) if total_time > 0 else 0,
+                first_detected=str(stats['first_detected']),
+                last_detected=str(stats['last_detected'])
             ))
         
         # 총 시간 기준으로 정렬
