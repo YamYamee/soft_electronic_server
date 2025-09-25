@@ -21,3 +21,6 @@ aiofiles>=23.0.0
 
 # 기타 유틸리티
 typing-extensions>=4.0.0
+
+# 시스템 모니터링
+psutil>=5.9.0

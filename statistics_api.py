@@ -7,10 +7,12 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.base import BaseHTTPMiddleware
 import logging
+import time
 from config import config
 
 # 로거 설정
@@ -19,14 +21,45 @@ logger = logging.getLogger(__name__)
 # FastAPI 앱 생성
 app = FastAPI(
     title="자세 인식 통계 API",
-    description="실시간 자세 인식 시스템의 통계 및 분석 API",
+    description="실시간 자세 분석 통계 및 점수 시스템",
     version="1.0.0"
 )
+
+# API 요청 로깅 미들웨어
+class LoggingMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            start_time = time.time()
+            
+            # 요청 정보 로깅
+            method = scope["method"]
+            path = scope["path"]
+            client_ip = scope.get("client", ["unknown"])[0] if scope.get("client") else "unknown"
+            
+            from logger_config import log_api_request
+            log_api_request(path, method, client_ip)
+            
+            # 응답 처리
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    process_time = time.time() - start_time
+                    logger.info(f"API 응답: {method} {path} - {message.get('status', 'unknown')} ({process_time*1000:.1f}ms)")
+                await send(message)
+            
+            await self.app(scope, receive, send_wrapper)
+        else:
+            await self.app(scope, receive, send)
+
+# 미들웨어 등록
+app.add_middleware(LoggingMiddleware)
 
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 프로덕션에서는 특정 도메인만 허용
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

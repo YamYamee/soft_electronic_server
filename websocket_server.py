@@ -31,36 +31,33 @@ class PostureWebSocketServer:
             'response_times': []
         }
     
-    async def register_client(self, websocket, client_id=None):
-        """클라이언트 등록"""
-        if client_id is None:
-            client_id = str(uuid.uuid4())
+    async def register_client(self, websocket, path):
+        """새 클라이언트 등록"""
+        client_id = str(uuid.uuid4())
+        self.clients[client_id] = websocket
         
-        self.connected_clients[client_id] = websocket
-        self.client_info[client_id] = {
-            'connect_time': datetime.now(),
-            'last_activity': datetime.now(),
-            'predictions_count': 0
-        }
+        # 데이터베이스에 연결 기록
+        await db.log_client_connection(client_id, connect=True)
         
-        # 데이터베이스에 연결 로그
-        await db.log_client_connection(client_id)
+        # 상세 연결 로그
+        from logger_config import log_websocket_connection
+        log_websocket_connection(client_id, "connected")
+        logger.info(f"새 클라이언트 연결: {client_id} (총 {len(self.clients)}명 연결)")
         
-        logger.info(f"클라이언트 등록 완료 - ID: {client_id}, 총 연결: {len(self.connected_clients)}")
         return client_id
     
     async def unregister_client(self, client_id):
-        """클라이언트 등록 해제"""
-        if client_id in self.connected_clients:
-            del self.connected_clients[client_id]
-        
-        if client_id in self.client_info:
-            del self.client_info[client_id]
-        
-        # 데이터베이스에 연결 해제 로그
-        await db.log_client_disconnection(client_id)
-        
-        logger.info(f"클라이언트 등록 해제 - ID: {client_id}, 남은 연결: {len(self.connected_clients)}")
+        """클라이언트 연결 해제"""
+        if client_id in self.clients:
+            del self.clients[client_id]
+            
+            # 데이터베이스에 연결 해제 기록
+            await db.log_client_connection(client_id, connect=False)
+            
+            # 상세 연결 해제 로그
+            from logger_config import log_websocket_connection
+            log_websocket_connection(client_id, "disconnected")
+            logger.info(f"클라이언트 연결 해제: {client_id} (총 {len(self.clients)}명 연결)")
     
     async def process_sensor_data(self, client_id, data):
         """센서 데이터 처리 및 자세 예측"""
@@ -277,10 +274,18 @@ async def start_websocket_server():
 
 # 메인 실행 함수
 async def main():
-    await start_websocket_server()
+    from logger_config import log_server_start, log_server_shutdown
+    log_server_start()
+    try:
+        await start_websocket_server()
+    finally:
+        log_server_shutdown()
 
 if __name__ == "__main__":
     try:
+        setup_logging()
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("사용자에 의해 서버가 종료되었습니다")
+        from logger_config import log_server_shutdown
+        log_server_shutdown()

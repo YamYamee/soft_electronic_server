@@ -9,9 +9,10 @@ import sys
 import threading
 import logging
 import uvicorn
+import psutil
 from websocket_server import start_websocket_server
 from statistics_api import app as fastapi_app
-from logger_config import setup_logging, log_server_start, log_server_shutdown
+from logger_config import setup_logging, log_server_start, log_server_shutdown, log_system_health
 from config import config
 
 # 로깅 설정
@@ -37,6 +38,29 @@ def run_fastapi_server():
     except Exception as e:
         logger.error(f"FastAPI 서버 오류: {e}")
 
+async def system_monitor():
+    """시스템 상태 모니터링 (주기적 실행)"""
+    while True:
+        try:
+            # 시스템 리소스 정보 수집
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory_info = psutil.virtual_memory()
+            memory_percent = memory_info.percent
+            
+            # 활성 연결 수 (WebSocket 서버에서 가져오기)
+            # 여기서는 간단히 0으로 설정 (실제로는 WebSocket 서버에서 가져와야 함)
+            active_connections = 0
+            
+            # 시스템 상태 로그
+            log_system_health(cpu_percent, memory_percent, active_connections)
+            
+            # 30초마다 체크
+            await asyncio.sleep(30)
+            
+        except Exception as e:
+            logger.error(f"시스템 모니터링 오류: {e}")
+            await asyncio.sleep(30)
+
 async def main():
     """메인 함수"""
     # 시그널 핸들러 등록
@@ -59,6 +83,10 @@ async def main():
         )
         fastapi_thread.start()
         logger.info("FastAPI 서버 스레드 시작됨")
+        
+        # 시스템 모니터링 태스크 시작
+        monitor_task = asyncio.create_task(system_monitor())
+        logger.info("시스템 모니터링 시작됨")
         
         # WebSocket 서버를 메인 스레드에서 실행
         logger.info("WebSocket 서버 시작 중...")

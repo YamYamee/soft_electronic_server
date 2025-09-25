@@ -85,6 +85,8 @@ class EnsemblePosturePredictor:
 
     def load_ensemble_models(self):
         """여러 ML 모델들을 로드하여 앙상블 구성"""
+        from logger_config import log_model_loading, log_model_loaded, log_ensemble_summary
+        
         ml_dir = os.path.join(os.path.dirname(__file__), 'ML')
         model_files = {
             'lr': 'model_lr.joblib',
@@ -95,20 +97,24 @@ class EnsemblePosturePredictor:
         
         scaler_path = os.path.join(ml_dir, 'scaler.joblib')
         
-        logger.info("앙상블 모델 로딩 시작...")
+        log_model_loading()
         
         # 스케일러 로드
         try:
             if os.path.exists(scaler_path):
                 self.scaler = joblib.load(scaler_path)
-                logger.info("✅ 스케일러 로드 완료")
+                log_model_loaded("Scaler", True)
             else:
                 logger.warning("⚠️ 스케일러 파일을 찾을 수 없습니다")
+                log_model_loaded("Scaler", False)
         except Exception as e:
             logger.error(f"스케일러 로드 오류: {e}")
+            log_model_loaded("Scaler", False)
         
         # 각 모델 로드
         loaded_models = 0
+        total_models = len(model_files)
+        
         for model_name, model_file in model_files.items():
             model_path = os.path.join(ml_dir, model_file)
             try:
@@ -116,17 +122,20 @@ class EnsemblePosturePredictor:
                     model = joblib.load(model_path)
                     self.models[model_name] = model
                     loaded_models += 1
-                    logger.info(f"✅ {model_name.upper()} 모델 로드 완료")
+                    log_model_loaded(model_name, True)
                 else:
                     logger.warning(f"⚠️ {model_name.upper()} 모델 파일을 찾을 수 없습니다: {model_path}")
+                    log_model_loaded(model_name, False)
             except Exception as e:
                 logger.error(f"❌ {model_name.upper()} 모델 로드 오류: {e}")
+                log_model_loaded(model_name, False)
+        
+        # 앙상블 구성 완료 로그
+        log_ensemble_summary(loaded_models, total_models)
         
         if loaded_models == 0:
             logger.warning("사용 가능한 ML 모델이 없어 규칙 기반 모델로 대체합니다")
             self.create_simple_rule_based_model()
-        else:
-            logger.info(f"🎯 앙상블 구성 완료: {loaded_models}개 모델 로드됨")
             
         return loaded_models > 0
 
@@ -152,6 +161,8 @@ class EnsemblePosturePredictor:
     
     def preprocess_data(self, fsr_data: List[float], imu_data: Any = None) -> np.ndarray:
         """입력 데이터 전처리"""
+        from logger_config import log_data_preprocessing
+        
         try:
             # FSR 데이터 검증
             if not isinstance(fsr_data, list):
@@ -173,7 +184,9 @@ class EnsemblePosturePredictor:
             # 현재는 FSR 데이터만 사용 (IMU 데이터는 향후 확장 가능)
             features = fsr_array
             
-            logger.debug(f"전처리된 특성 데이터 형태: {features.shape}")
+            # 상세 전처리 로그 (DEBUG 레벨)
+            log_data_preprocessing(fsr_data, features, scaler_used=self.scaler is not None)
+            
             return features
             
         except Exception as e:
@@ -272,6 +285,10 @@ class EnsemblePosturePredictor:
             # 처리 시간 계산
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
             
+            # 상세 예측 과정 로그 출력
+            from logger_config import log_prediction_detailed
+            log_prediction_detailed(client_id, device_id, fsr_data, prediction_details, processing_time)
+            
             # 예측 로그 저장 (비동기적으로)
             self.log_prediction(
                 client_id=client_id,
@@ -285,9 +302,6 @@ class EnsemblePosturePredictor:
                 method=method,
                 processing_time=processing_time
             )
-            
-            logger.info(f"자세 예측 완료 - 자세: {predicted_posture} ({self.posture_labels[predicted_posture]}), "
-                       f"신뢰도: {confidence:.3f}, 방법: {method}, 처리시간: {processing_time:.1f}ms")
             
             return predicted_posture, confidence
             
@@ -421,8 +435,14 @@ class EnsemblePosturePredictor:
                 ))
                 conn.commit()
                 
+                # DB 저장 성공 로그
+                from logger_config import log_db_save
+                log_db_save("prediction_logs", True)
+                
         except Exception as e:
             logger.error(f"예측 로그 저장 오류: {e}")
+            from logger_config import log_db_save
+            log_db_save("prediction_logs", False, str(e))
 
     def get_prediction_statistics(self, hours: int = 24) -> Dict:
         """최근 예측 통계 조회"""

@@ -97,3 +97,102 @@ def log_performance_metrics(total_clients, predictions_per_second, avg_response_
     """성능 메트릭 로그"""
     logger = logging.getLogger(__name__)
     logger.info(f"성능 메트릭 - 연결 클라이언트: {total_clients}, 초당 예측: {predictions_per_second:.1f}, 평균 응답시간: {avg_response_time_ms:.1f}ms")
+
+def log_prediction_detailed(client_id, device_id, fsr_data, prediction_details, processing_time):
+    """상세 예측 과정 로그"""
+    logger = logging.getLogger(__name__)
+    
+    # 기본 정보
+    logger.info("🔍 [예측 시작] " + "="*50)
+    logger.info(f"📱 클라이언트: {client_id} | 디바이스: {device_id}")
+    logger.info(f"📊 FSR 데이터: {fsr_data}")
+    
+    # 개별 모델 예측 결과
+    if 'individual_predictions' in prediction_details:
+        logger.info("🤖 개별 모델 예측 결과:")
+        individual_preds = prediction_details['individual_predictions']
+        individual_confs = prediction_details.get('individual_confidences', {})
+        
+        for model_name, prediction in individual_preds.items():
+            confidence = individual_confs.get(model_name, 0.0)
+            logger.info(f"  • {model_name.upper()}: 자세 {prediction} (신뢰도 {confidence:.3f})")
+    
+    # 투표 점수
+    if 'voting_scores' in prediction_details:
+        voting_scores = prediction_details['voting_scores']
+        logger.info("🗳️  앙상블 투표 점수:")
+        for i, score in enumerate(voting_scores):
+            if score > 0:
+                logger.info(f"  • 자세 {i}: {score:.3f}")
+    
+    # 최종 결과
+    final_pred = prediction_details.get('ensemble_prediction', 0)
+    final_conf = prediction_details.get('ensemble_confidence', 0.0)
+    logger.info(f"✅ 최종 예측: 자세 {final_pred} (신뢰도 {final_conf:.3f})")
+    logger.info(f"⏱️  처리 시간: {processing_time:.1f}ms")
+    logger.info("🏁 [예측 완료] " + "="*50)
+
+def log_model_loading():
+    """모델 로딩 과정 로그"""
+    logger = logging.getLogger(__name__)
+    logger.info("🚀 앙상블 모델 시스템 초기화 중...")
+
+def log_model_loaded(model_name, success=True):
+    """개별 모델 로드 결과 로그"""
+    logger = logging.getLogger(__name__)
+    if success:
+        logger.info(f"  ✅ {model_name.upper()} 모델 로드 성공")
+    else:
+        logger.warning(f"  ❌ {model_name.upper()} 모델 로드 실패")
+
+def log_ensemble_summary(loaded_models, total_models):
+    """앙상블 구성 완료 로그"""
+    logger = logging.getLogger(__name__)
+    logger.info(f"🎯 앙상블 구성 완료: {loaded_models}/{total_models} 모델 활성화")
+    if loaded_models == 0:
+        logger.warning("⚠️  ML 모델 없음 - 규칙 기반 모델로 대체")
+    elif loaded_models < total_models:
+        logger.warning(f"⚠️  일부 모델 누락 - {total_models - loaded_models}개 모델 로드 실패")
+
+def log_data_preprocessing(original_data, processed_data, scaler_used=False):
+    """데이터 전처리 과정 로그"""
+    logger = logging.getLogger(__name__)
+    logger.debug("🔧 데이터 전처리 수행:")
+    logger.debug(f"  원본 데이터 형태: {original_data.shape if hasattr(original_data, 'shape') else len(original_data)}")
+    logger.debug(f"  전처리 후 형태: {processed_data.shape}")
+    logger.debug(f"  스케일러 사용: {'예' if scaler_used else '아니오'}")
+    logger.debug(f"  전처리된 값 범위: [{processed_data.min():.3f}, {processed_data.max():.3f}]")
+
+def log_db_save(table_name, success=True, error=None):
+    """DB 저장 결과 로그"""
+    logger = logging.getLogger(__name__)
+    if success:
+        logger.debug(f"💾 DB 저장 성공: {table_name} 테이블")  
+    else:
+        logger.error(f"💾 DB 저장 실패: {table_name} 테이블 - {error}")
+
+def log_websocket_connection(client_id, action="connected"):
+    """WebSocket 연결 상태 로그"""
+    logger = logging.getLogger(__name__)
+    if action == "connected":
+        logger.info(f"🔌 클라이언트 연결: {client_id}")
+    elif action == "disconnected":
+        logger.info(f"🔌 클라이언트 연결 해제: {client_id}")
+    elif action == "error":
+        logger.error(f"🔌 클라이언트 연결 오류: {client_id}")
+
+def log_api_request(endpoint, method="GET", client_ip=None):
+    """API 요청 로그"""
+    logger = logging.getLogger(__name__)
+    client_info = f" ({client_ip})" if client_ip else ""
+    logger.info(f"🌐 API 요청: {method} {endpoint}{client_info}")
+
+def log_system_health(cpu_usage=None, memory_usage=None, active_connections=0):
+    """시스템 상태 로그"""
+    logger = logging.getLogger(__name__)
+    health_info = f"💓 시스템 상태 - 활성 연결: {active_connections}"
+    if cpu_usage:
+        health_info += f", CPU: {cpu_usage:.1f}%"
+    if memory_usage:
+        health_info += f", 메모리: {memory_usage:.1f}%"
+    logger.info(health_info)
