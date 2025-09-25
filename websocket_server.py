@@ -100,11 +100,11 @@ class PostureWebSocketServer:
             # 처리 시간 계산
             processing_time_ms = (time.time() - start_time) * 1000
             
-            # 응답 데이터 생성
+            # 응답 데이터 생성 (NumPy 타입을 Python 기본 타입으로 변환)
             response_data = {
                 "id": message_id,
-                "posture": predicted_posture,
-                "confidence": round(confidence, 3)
+                "posture": int(predicted_posture),  # numpy.int64 -> int 변환
+                "confidence": float(round(confidence, 3))  # numpy.float64 -> float 변환
             }
             
             # 클라이언트에게 결과 전송
