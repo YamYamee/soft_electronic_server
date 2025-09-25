@@ -196,3 +196,44 @@ def log_system_health(cpu_usage=None, memory_usage=None, active_connections=0):
     if memory_usage:
         health_info += f", 메모리: {memory_usage:.1f}%"
     logger.info(health_info)
+
+def log_stage2_prediction_detailed(client_id, device_id, imu_data, stage1_result, prediction_details, processing_time):
+    """2차 분류 상세 예측 과정 로그"""
+    logger = logging.getLogger(__name__)
+    
+    # 헤더
+    logger.info("=" * 50)
+    logger.info(f"🎯 [2차 분류 시작] 클라이언트: {client_id}, 디바이스: {device_id}")
+    logger.info(f"📊 1차 분류 결과: 자세 {stage1_result['prediction']} (신뢰도: {stage1_result['confidence']:.3f})")
+    
+    # IMU 데이터 로그
+    if imu_data:
+        logger.info("📱 IMU 센서 데이터:")
+        if isinstance(imu_data, dict):
+            logger.info(f"   • 가속도: X={imu_data.get('accel_x', 0):.3f}, Y={imu_data.get('accel_y', 0):.3f}, Z={imu_data.get('accel_z', 0):.3f}")
+            logger.info(f"   • 자이로:  X={imu_data.get('gyro_x', 0):.3f}, Y={imu_data.get('gyro_y', 0):.3f}, Z={imu_data.get('gyro_z', 0):.3f}")
+    
+    # 개별 2차 모델 결과
+    individual_preds = prediction_details.get('stage2_individual_predictions', {})
+    individual_confs = prediction_details.get('stage2_individual_confidences', {})
+    
+    if individual_preds:
+        logger.info("🤖 개별 2차 모델 예측 결과:")
+        for model_name, prediction in individual_preds.items():
+            confidence = individual_confs.get(model_name, 0.0)
+            logger.info(f"   • {model_name.upper()}: 자세 {prediction} (신뢰도 {confidence:.3f})")
+    
+    # 투표 점수
+    voting_scores = prediction_details.get('stage2_voting_scores', [])
+    if voting_scores and any(score > 0 for score in voting_scores):
+        logger.info("🗳️  2차 앙상블 투표 점수:")
+        for i, score in enumerate(voting_scores):
+            if score > 0.001:  # 의미있는 점수만 표시
+                logger.info(f"   • 자세 {i}: {score:.3f}")
+    
+    # 최종 결과
+    final_pred = prediction_details.get('stage2_final_prediction', 0)
+    final_conf = prediction_details.get('stage2_final_confidence', 0.0)
+    logger.info(f"✅ 2차 분류 최종 예측: 자세 {final_pred} (신뢰도 {final_conf:.3f})")
+    logger.info(f"⏱️  2차 분류 처리 시간: {processing_time:.1f}ms")
+    logger.info("🏁 [2차 분류 완료] " + "=" * 30)

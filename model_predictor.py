@@ -366,11 +366,27 @@ class EnsemblePosturePredictor:
             if predicted_posture in [0, 1] and imu_data and self.models_stage2:
                 logger.info(f"🎯 자세 {predicted_posture} 감지 - 2차 IMU 분류 시작")
                 
+                stage2_start_time = datetime.now()
+                
                 # IMU 데이터 전처리
                 imu_features = self.preprocess_imu_data(imu_data)
                 
                 # 2차 분류 수행
                 stage2_prediction, stage2_confidence, stage2_details = self.stage2_predict(imu_features)
+                
+                # 2차 분류 처리 시간 계산
+                stage2_processing_time = (datetime.now() - stage2_start_time).total_seconds() * 1000
+                
+                # 2차 분류 상세 로그 출력
+                from logger_config import log_stage2_prediction_detailed
+                stage1_result = {
+                    'prediction': predicted_posture,
+                    'confidence': confidence
+                }
+                log_stage2_prediction_detailed(
+                    client_id, device_id, imu_data, stage1_result, 
+                    stage2_details, stage2_processing_time
+                )
                 
                 # 2차 분류 결과가 유의미한 경우 (자세 0이 아닌 경우) 결과 업데이트
                 if stage2_prediction != 0 and stage2_confidence > 0.6:
