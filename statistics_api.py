@@ -12,10 +12,73 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import time
+import struct
 from config import config
 
 # 로거 설정
 logger = logging.getLogger(__name__)
+
+# 바이트 데이터 변환 헬퍼 함수
+def safe_int_convert(value):
+    """바이트 또는 다른 타입의 데이터를 안전하게 정수로 변환"""
+    if isinstance(value, bytes):
+        # 바이트 데이터를 정수로 변환 (little-endian으로 가정)
+        try:
+            if len(value) == 8:
+                return struct.unpack('<Q', value)[0]  # unsigned long long
+            elif len(value) == 4:
+                return struct.unpack('<I', value)[0]  # unsigned int
+            elif len(value) == 2:
+                return struct.unpack('<H', value)[0]  # unsigned short
+            elif len(value) == 1:
+                return struct.unpack('<B', value)[0]  # unsigned char
+            else:
+                # 바이트 길이가 예상과 다른 경우, 첫 바이트만 사용
+                return struct.unpack('<B', value[:1])[0]
+        except struct.error:
+            logger.warning(f"바이트 변환 실패, 기본값 0 반환: {value}")
+            return 0
+    elif isinstance(value, (int, float)):
+        return int(value)
+    elif isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            logger.warning(f"문자열을 정수로 변환 실패, 기본값 0 반환: {value}")
+            return 0
+    else:
+        logger.warning(f"알 수 없는 타입을 정수로 변환, 기본값 0 반환: {type(value)} - {value}")
+        return 0
+
+def safe_float_convert(value):
+    """바이트 또는 다른 타입의 데이터를 안전하게 실수로 변환"""
+    if isinstance(value, bytes):
+        # 먼저 정수로 변환한 다음 실수로 변환
+        return float(safe_int_convert(value))
+    elif isinstance(value, (int, float)):
+        return float(value)
+    elif isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            logger.warning(f"문자열을 실수로 변환 실패, 기본값 0.0 반환: {value}")
+            return 0.0
+    else:
+        logger.warning(f"알 수 없는 타입을 실수로 변환, 기본값 0.0 반환: {type(value)} - {value}")
+        return 0.0
+
+def safe_str_convert(value):
+    """바이트 또는 다른 타입의 데이터를 안전하게 문자열로 변환"""
+    if isinstance(value, bytes):
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            logger.warning(f"바이트를 문자열로 디코딩 실패, repr 사용: {value}")
+            return repr(value)
+    elif value is None:
+        return ""
+    else:
+        return str(value)
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -179,7 +242,7 @@ class StatisticsDatabase:
                 
                 for record in records:
                     timestamp = datetime.strptime(record['timestamp'], '%Y-%m-%d %H:%M:%S')
-                    posture = record['predicted_posture']
+                    posture = safe_int_convert(record['predicted_posture'])
                     confidence = record['confidence']
                     
                     if current_posture != posture:
@@ -256,18 +319,22 @@ class StatisticsDatabase:
             posture_stats[posture_id]['confidences'].append(session['avg_confidence'])
             posture_stats[posture_id]['last_detected'] = session['end_time']
         
-        # PostureTimeStats 객체로 변환 (데이터 타입 명시적 변환)
+        # PostureTimeStats 객체로 변환 (안전한 데이터 타입 변환)
         result = []
         for stats in posture_stats.values():
+            posture_id = safe_int_convert(stats['posture_id'])
+            total_duration = safe_float_convert(stats['total_duration'])
+            session_count = safe_int_convert(stats['session_count'])
+            
             result.append(PostureTimeStats(
-                posture_id=int(stats['posture_id']),  # 명시적으로 int 변환
-                posture_name=str(stats['posture_name']),
-                total_duration_minutes=round(float(stats['total_duration']), 2),
-                session_count=int(stats['session_count']),
-                average_session_duration=round(float(stats['total_duration']) / int(stats['session_count']), 2),
-                percentage=round((float(stats['total_duration']) / total_time * 100), 2) if total_time > 0 else 0,
-                first_detected=str(stats['first_detected']),
-                last_detected=str(stats['last_detected'])
+                posture_id=posture_id,
+                posture_name=safe_str_convert(stats['posture_name']),
+                total_duration_minutes=round(total_duration, 2),
+                session_count=session_count,
+                average_session_duration=round(total_duration / session_count, 2) if session_count > 0 else 0,
+                percentage=round((total_duration / total_time * 100), 2) if total_time > 0 else 0,
+                first_detected=safe_str_convert(stats['first_detected']),
+                last_detected=safe_str_convert(stats['last_detected'])
             ))
         
         # 총 시간 기준으로 정렬
@@ -782,20 +849,20 @@ async def get_recent_prediction_logs(
             for row in cursor.fetchall():
                 import json
                 log_entry = {
-                    'timestamp': row[0],
-                    'client_id': row[1],
-                    'device_id': row[2],
-                    'prediction': row[3],
-                    'confidence': row[4],
-                    'method': row[5],
-                    'processing_time_ms': row[6],
+                    'timestamp': safe_str_convert(row[0]),
+                    'client_id': safe_str_convert(row[1]),
+                    'device_id': safe_str_convert(row[2]),
+                    'prediction': safe_int_convert(row[3]),
+                    'confidence': safe_float_convert(row[4]),
+                    'method': safe_str_convert(row[5]),
+                    'processing_time_ms': safe_float_convert(row[6]),
                     'individual_models': {
-                        'lr': {'prediction': row[7], 'confidence': row[8]},
-                        'rf': {'prediction': row[9], 'confidence': row[10]},
-                        'dt': {'prediction': row[11], 'confidence': row[12]},
-                        'kn': {'prediction': row[13], 'confidence': row[14]}
+                        'lr': {'prediction': safe_int_convert(row[7]), 'confidence': safe_float_convert(row[8])},
+                        'rf': {'prediction': safe_int_convert(row[9]), 'confidence': safe_float_convert(row[10])},
+                        'dt': {'prediction': safe_int_convert(row[11]), 'confidence': safe_float_convert(row[12])},
+                        'kn': {'prediction': safe_int_convert(row[13]), 'confidence': safe_float_convert(row[14])}
                     },
-                    'voting_scores': json.loads(row[15]) if row[15] else None,
+                    'voting_scores': json.loads(safe_str_convert(row[15])) if row[15] else None,
                     'models_used': json.loads(row[16]) if row[16] else []
                 }
                 logs.append(log_entry)
