@@ -31,33 +31,43 @@ class PostureWebSocketServer:
             'response_times': []
         }
     
-    async def register_client(self, websocket, path):
+    async def register_client(self, websocket):
         """새 클라이언트 등록"""
         client_id = str(uuid.uuid4())
-        self.clients[client_id] = websocket
+        self.connected_clients[client_id] = websocket
+        
+        # 클라이언트 정보 초기화
+        self.client_info[client_id] = {
+            'connect_time': datetime.now(),
+            'predictions_count': 0,
+            'last_activity': datetime.now()
+        }
         
         # 데이터베이스에 연결 기록
-        await db.log_client_connection(client_id, connect=True)
+        await db.log_client_connection(client_id)
         
         # 상세 연결 로그
         from logger_config import log_websocket_connection
         log_websocket_connection(client_id, "connected")
-        logger.info(f"새 클라이언트 연결: {client_id} (총 {len(self.clients)}명 연결)")
+        logger.info(f"새 클라이언트 연결: {client_id} (총 {len(self.connected_clients)}명 연결)")
         
         return client_id
     
     async def unregister_client(self, client_id):
         """클라이언트 연결 해제"""
-        if client_id in self.clients:
-            del self.clients[client_id]
+        if client_id in self.connected_clients:
+            del self.connected_clients[client_id]
             
-            # 데이터베이스에 연결 해제 기록
-            await db.log_client_connection(client_id, connect=False)
+        if client_id in self.client_info:
+            del self.client_info[client_id]
             
-            # 상세 연결 해제 로그
-            from logger_config import log_websocket_connection
-            log_websocket_connection(client_id, "disconnected")
-            logger.info(f"클라이언트 연결 해제: {client_id} (총 {len(self.clients)}명 연결)")
+        # 데이터베이스에 연결 해제 기록
+        await db.log_client_disconnection(client_id)
+        
+        # 상세 연결 해제 로그
+        from logger_config import log_websocket_connection
+        log_websocket_connection(client_id, "disconnected")
+        logger.info(f"클라이언트 연결 해제: {client_id} (총 {len(self.connected_clients)}명 연결)")
     
     async def process_sensor_data(self, client_id, data):
         """센서 데이터 처리 및 자세 예측"""
