@@ -381,12 +381,12 @@ class EnsemblePosturePredictor:
                 if relative_pitch is not None:
                     try:
                         pitch_value = float(relative_pitch)
-                        # ±5도 임계값 초과 시 자세 1(거북목/기울어짐)
-                        if abs(pitch_value) > 5.0:
+                        # ±10도 임계값 초과 시 자세 1(거북목/기울어짐)
+                        if abs(pitch_value) > 10.0:
                             threshold_posture = 1
-                            logger.info(f"🎯 임계값 초과: relativePitch={pitch_value:.2f}° > ±5° → 자세 1")
+                            logger.info(f"🎯 임계값 초과: relativePitch={pitch_value:.2f}° > ±10° → 자세 1")
                         else:
-                            logger.info(f"🎯 임계값 범위내: relativePitch={pitch_value:.2f}° ≤ ±5° → 자세 0 유지")
+                            logger.info(f"🎯 임계값 범위내: relativePitch={pitch_value:.2f}° ≤ ±10° → 자세 0 유지")
                     except (ValueError, TypeError):
                         logger.warning(f"⚠️ relativePitch 값 변환 실패: {relative_pitch}")
                 else:
