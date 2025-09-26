@@ -301,7 +301,7 @@ class EnsemblePosturePredictor:
             if left_pressure > right_pressure * 1.5:
                 # 왼쪽으로 치우침
                 if front_pressure > back_pressure:
-                    predicted_posture = 7  # 왼쪽 다리 꼭기
+                    predicted_posture = 7  # 왼쪽 다리 꼬기
                 else:
                     predicted_posture = 5  # 왼쪽으로 기대기
                 confidence = min(0.9, (left_pressure / right_pressure - 1) * 0.5 + 0.6)
@@ -309,7 +309,7 @@ class EnsemblePosturePredictor:
             elif right_pressure > left_pressure * 1.5:
                 # 오른쪽으로 치우침
                 if front_pressure > back_pressure:
-                    predicted_posture = 6  # 오른쪽 다리 꼭기
+                    predicted_posture = 6  # 오른쪽 다리 꼬기
                 else:
                     predicted_posture = 4  # 오른쪽으로 기대기
                 confidence = min(0.9, (right_pressure / left_pressure - 1) * 0.5 + 0.6)

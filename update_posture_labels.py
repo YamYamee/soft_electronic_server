@@ -19,8 +19,8 @@ NEW_POSTURE_LABELS = [
     (3, "앞으로 당겨 기대기", "Forward Lean", "몸을 앞으로 기울여 기대는 자세"),
     (4, "오른쪽으로 기대기", "Right Lean", "몸이 오른쪽으로 기운 자세"),
     (5, "왼쪽으로 기대기", "Left Lean", "몸이 왼쪽으로 기운 자세"),
-    (6, "오른쪽 다리 꼭기", "Right Leg Cross", "오른쪽 다리를 꼰 자세"),
-    (7, "왼쪽 다리 꼭기", "Left Leg Cross", "왼쪽 다리를 꼰 자세")
+    (6, "오른쪽 다리 꼬기", "Right Leg Cross", "오른쪽 다리를 꼰 자세"),
+    (7, "왼쪽 다리 꼬기", "Left Leg Cross", "왼쪽 다리를 꼰 자세")
 ]
 
 def update_posture_labels():
