@@ -32,7 +32,7 @@ class EnsemblePosturePredictor:
         # Database manager for logging
         self.db_manager = PostureDatabase()
         self.load_ensemble_models()
-        self.load_stage2_models()  # 2차 모델들 로드
+        # self.load_stage2_models()  # 2차 모델들 로드 - 임계값 기반으로 변경
         
         # 모델별 가중치 (성능에 따라 조정 가능)
         self.model_weights = {
@@ -362,46 +362,47 @@ class EnsemblePosturePredictor:
             
             logger.info(f"🥇 1차 분류 결과: 자세 {predicted_posture} (신뢰도: {confidence:.3f})")
             
-            # 2차 분류: 1차에서 자세 0(정자세) 또는 1번 자세인 경우 IMU 기반 세부 분류
-            if predicted_posture in [0, 1] and imu_data and self.models_stage2:
-                logger.info(f"🎯 자세 {predicted_posture} 감지 - 2차 IMU 분류 시작")
+            # 2차 분류: 1차에서 자세 0(정자세)인 경우에만 IMU 기반 임계값 분류
+            if predicted_posture == 0 and imu_data:
+                logger.info(f"🎯 자세 {predicted_posture} 감지 - 2차 IMU 임계값 분류 시작")
                 
                 stage2_start_time = datetime.now()
                 
-                # IMU 데이터 전처리
-                imu_features = self.preprocess_imu_data(imu_data)
+                # IMU relativePitch 값 추출
+                relative_pitch = None
+                if isinstance(imu_data, dict):
+                    if 'IMU' in imu_data and 'relativePitch' in imu_data['IMU']:
+                        relative_pitch = imu_data['IMU']['relativePitch']
+                    elif 'relativePitch' in imu_data:
+                        relative_pitch = imu_data['relativePitch']
                 
-                # 2차 분류 수행
-                stage2_prediction, stage2_confidence, stage2_details = self.stage2_predict(imu_features)
+                # 임계값 기반 자세 분류 (±5도)
+                threshold_posture = 0  # 기본값: 정자세
+                if relative_pitch is not None:
+                    try:
+                        pitch_value = float(relative_pitch)
+                        # ±5도 임계값 초과 시 자세 1(거북목/기울어짐)
+                        if abs(pitch_value) > 5.0:
+                            threshold_posture = 1
+                            logger.info(f"🎯 임계값 초과: relativePitch={pitch_value:.2f}° > ±5° → 자세 1")
+                        else:
+                            logger.info(f"🎯 임계값 범위내: relativePitch={pitch_value:.2f}° ≤ ±5° → 자세 0 유지")
+                    except (ValueError, TypeError):
+                        logger.warning(f"⚠️ relativePitch 값 변환 실패: {relative_pitch}")
+                else:
+                    logger.warning("⚠️ relativePitch 값을 찾을 수 없음")
                 
                 # 2차 분류 처리 시간 계산
                 stage2_processing_time = (datetime.now() - stage2_start_time).total_seconds() * 1000
                 
-                # 2차 분류 상세 로그 출력
-                from logger_config import log_stage2_prediction_detailed
-                stage1_result = {
-                    'prediction': predicted_posture,
-                    'confidence': confidence
-                }
-                log_stage2_prediction_detailed(
-                    client_id, device_id, imu_data, stage1_result, 
-                    stage2_details, stage2_processing_time
-                )
-                
                 # 2차 분류 결과가 유의미한 경우 (자세 0이 아닌 경우) 결과 업데이트
-                if stage2_prediction != 0 and stage2_confidence > 0.6:
-                    logger.info(f"🎯 2차 분류로 자세 변경: {predicted_posture} -> {stage2_prediction}")
-                    predicted_posture = stage2_prediction
-                    confidence = stage2_confidence
-                    prediction_details.update(stage2_details)
-                    method = method + "_+_stage2"
-                else:
-                    logger.info(f"🎯 2차 분류 결과 무시: 자세 {stage2_prediction} (신뢰도: {stage2_confidence:.3f})")
-                    prediction_details.update(stage2_details)
-            elif predicted_posture in [0, 1] and not imu_data:
-                logger.debug(f"자세 {predicted_posture}이지만 IMU 데이터가 없어서 2차 분류를 수행하지 않습니다")
-            elif predicted_posture in [0, 1] and not self.models_stage2:
-                logger.debug(f"자세 {predicted_posture}이지만 2차 모델이 없어서 2차 분류를 수행하지 않습니다")
+                if threshold_posture != 0:
+                    logger.info(f"🎯 2차 임계값 분류로 자세 변경: {predicted_posture} -> {threshold_posture}")
+                    predicted_posture = threshold_posture
+                
+                logger.info(f"⏱️ 2차 임계값 분류 처리 시간: {stage2_processing_time:.2f}ms")
+            elif predicted_posture == 0 and not imu_data:
+                logger.debug("자세 0이지만 IMU 데이터가 없어서 2차 임계값 분류를 수행하지 않습니다")
             else:
                 logger.debug(f"1차 분류 결과가 자세 {predicted_posture}이므로 2차 분류를 수행하지 않습니다")
             
