@@ -362,19 +362,19 @@ class StatisticsDatabase:
             
             total_time = sum(stat.total_duration_minutes for stat in posture_stats)
             
-            # 1. 바른 자세 점수 (60점 만점)
+            # 1. 바른 자세 기본 점수 (100점 만점)
             good_posture = next((stat for stat in posture_stats if stat.posture_id == 0), None)
             good_posture_percentage = good_posture.percentage if good_posture else 0
-            good_posture_score = min(60, int(good_posture_percentage * 0.6))
+            good_posture_score = int(good_posture_percentage)
             
-            # 2. 나쁜 자세 감점 (최대 -40점)
+            # 2. 나쁜 자세로 인한 점수 차감 (바른 자세 비율에서 직접 반영됨)
             bad_postures = [stat for stat in posture_stats if stat.posture_id != 0]
-            bad_posture_penalty = 0
+            bad_posture_penalty = 0  # 실제로는 good_posture_percentage에 이미 반영됨
             worst_posture = '없음'
             worst_posture_duration = 0
             
             if bad_postures:
-                # 자세별 가중치 (더 해로운 자세일수록 높은 감점)
+                # 가장 문제가 되는 자세 찾기 (피드백용)
                 posture_weights = {
                     1: 4,  # 거북목 자세 (매우 해로움)
                     2: 3,  # 목 숙이기 (해로움)
@@ -382,16 +382,8 @@ class StatisticsDatabase:
                     4: 2,  # 오른쪽으로 기대기 (보통)
                     5: 2,  # 왼쪽으로 기대기 (보통)
                     6: 1,  # 오른쪽 다리 꼭기 (가벼움)
-                    7: 1   # 왼쪽 다리 꼭기 (가벼움)
+                    7: 1   # 왼쪽 다리 꼭기 (가벌움)
                 }
-                
-                for stat in bad_postures:
-                    weight = posture_weights.get(stat.posture_id, 2)
-                    # 시간 비율에 따른 감점 (더 오래할수록 더 큰 감점)
-                    time_penalty = (stat.total_duration_minutes / total_time) * 100 * weight * 0.15
-                    bad_posture_penalty += time_penalty
-                
-                bad_posture_penalty = min(40, int(bad_posture_penalty))
                 
                 # 가장 문제가 되는 자세 (가중치 × 시간 기준)
                 worst_stat = max(bad_postures, 
@@ -399,60 +391,37 @@ class StatisticsDatabase:
                 worst_posture = worst_stat.posture_name
                 worst_posture_duration = worst_stat.total_duration_minutes
             
-            # 3. 세션 패턴 분석 및 보너스 점수 (20점 만점)
-            total_sessions = sum(stat.session_count for stat in posture_stats)
-            avg_session_duration = total_time / total_sessions if total_sessions > 0 else 0
+            # 3. 보너스 점수 제거 - 바른 자세 비율만으로 점수 계산
+            session_stability_score = 0  # 더 이상 보너스 점수 없음
             
-            # 세션 안정성 점수 (10점)
-            if 5 <= avg_session_duration <= 15:
-                stability_base = 10
-            elif 3 <= avg_session_duration < 5 or 15 < avg_session_duration <= 20:
-                stability_base = 8
-            elif 1 <= avg_session_duration < 3 or 20 < avg_session_duration <= 30:
-                stability_base = 5
-            else:
-                stability_base = 2
+            # 4. 총점 계산 (100점 만점) - 바른 자세 비율이 곧 점수
+            total_score = max(0, min(100, good_posture_score))
             
-            # 사용 빈도 보너스 (10점) - 적절한 모니터링 빈도
-            if total_sessions >= 3:  # 하루에 3회 이상 모니터링
-                frequency_bonus = 10
-            elif total_sessions >= 2:
-                frequency_bonus = 7
-            elif total_sessions >= 1:
-                frequency_bonus = 5
-            else:
-                frequency_bonus = 0
-                
-            session_stability_score = stability_base + frequency_bonus
-            
-            # 4. 총점 계산 (100점 만점)
-            total_score = max(0, min(100, good_posture_score - bad_posture_penalty + session_stability_score))
-            
-            # 5. 등급 및 맞춤형 피드백
-            if total_score >= 85:
+            # 5. 등급 및 맞춤형 피드백 (바른 자세 비율 기준)
+            if total_score == 100:
                 grade = 'A+'
-                feedback = '🌟 완벽한 자세! 오늘 하루 정말 잘 하셨습니다!'
-            elif total_score >= 75:
+                feedback = '🌟 완벽한 자세! 100% 바른 자세를 유지했습니다!'
+            elif total_score >= 90:
                 grade = 'A'
-                feedback = '😊 훌륭한 자세! 조금만 더 신경쓰면 완벽해요!'
-            elif total_score >= 65:
+                feedback = '😊 훌륭한 자세! {}% 바른 자세를 유지했어요!'.format(int(total_score))
+            elif total_score >= 80:
                 grade = 'B+'
-                feedback = '👍 좋은 자세! 바른 자세를 조금 더 유지해보세요.'
-            elif total_score >= 55:
+                feedback = '👍 좋은 자세! {}% 바른 자세를 유지했어요.'.format(int(total_score))
+            elif total_score >= 70:
                 grade = 'B'
-                feedback = '😐 보통 자세. 의식적으로 자세를 교정해보세요.'
-            elif total_score >= 45:
+                feedback = '😐 보통 자세. {}% 바른 자세 - 조금 더 신경써보세요.'.format(int(total_score))
+            elif total_score >= 60:
                 grade = 'C+'
-                feedback = '😟 자세 개선이 필요해요. 특히 {}을(를) 줄여보세요. ({}분 지속)'.format(worst_posture, int(worst_posture_duration))
-            elif total_score >= 35:
+                feedback = '😟 자세 개선이 필요해요. {}% 바른 자세 - 특히 {}을(를) 줄여보세요.'.format(int(total_score), worst_posture)
+            elif total_score >= 50:
                 grade = 'C'
-                feedback = '🚨 자세에 주의가 필요합니다. {}을(를) 자주 하고 있어요. ({}분 지속)'.format(worst_posture, int(worst_posture_duration))
+                feedback = '🚨 자세에 주의가 필요합니다. {}% 바른 자세 - {}을(를) {}분간 지속했어요.'.format(int(total_score), worst_posture, int(worst_posture_duration))
             else:
                 grade = 'D'
                 if worst_posture != '없음':
-                    feedback = '⚠️ 자세가 매우 좋지 않습니다. {}을(를) {}분간 지속했습니다. 즉시 개선이 필요해요!'.format(worst_posture, int(worst_posture_duration))
+                    feedback = '⚠️ 자세가 매우 좋지 않습니다. {}% 바른 자세 - {}을(를) {}분간 지속했습니다.'.format(int(total_score), worst_posture, int(worst_posture_duration))
                 else:
-                    feedback = '⚠️ 자세가 매우 좋지 않습니다. 바른 자세를 의식적으로 유지하세요!'
+                    feedback = '⚠️ 자세가 매우 좋지 않습니다. {}% 바른 자세 - 즉시 개선이 필요해요!'.format(int(total_score))
             
             return {
                 'total_score': total_score,
@@ -703,10 +672,10 @@ async def get_today_posture_score(
     
     - **device_id**: 특정 디바이스의 데이터만 조회
     
-    점수 구성:
-    - 바른 자세 비율 (60점)
-    - 나쁜 자세 감점 (최대 -30점)
-    - 세션 안정성 (20점)
+    점수 계산:
+    - 바른 자세 비율(%)이 곧 점수가 됩니다
+    - 100% 바른 자세 = 100점
+    - 80% 바른 자세 = 80점
     """
     try:
         today = datetime.now().strftime('%Y-%m-%d')
